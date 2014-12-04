@@ -18,53 +18,23 @@
  ******************************************************************************/
 
 package quickfix.examples.banzai.model;
-import java.util.HashMap;
-import java.util.Map;
 
-public class OrderSide {
-    static private Map<String, OrderSide> known = new HashMap<String, OrderSide>();
-    static public final OrderSide BUY = new OrderSide("Buy");
-    static public final OrderSide SELL = new OrderSide("Sell");
-    static public final OrderSide SHORT_SELL = new OrderSide("Short Sell");
-    static public final OrderSide SHORT_SELL_EXEMPT =
-        new OrderSide("Short Sell Exempt");
-    static public final OrderSide CROSS = new OrderSide("Cross");
-    static public final OrderSide CROSS_SHORT = new OrderSide("Cross Short");
-    static public final OrderSide CROSS_SHORT_EXEMPT =
-        new OrderSide("Cross Short Exempt");
+public enum OrderSide {
+	BUY("Buy"), SELL("Sell"), SHORT_SELL("Short Sell"), SHORT_SELL_EXEMPT(
+			"Short Sell Exempt"), CROSS("Cross"), CROSS_SHORT("Cross Short"), CROSS_SHORT_EXEMPT(
+			"Cross Short Exempt");
 
-    static private OrderSide[] array =
-        { BUY, SELL, SHORT_SELL, SHORT_SELL_EXEMPT,
-          CROSS, CROSS_SHORT, CROSS_SHORT_EXEMPT };
+	private String name;
 
-    private String name;
+	private OrderSide(String name) {
+		this.name = name;
+	}
 
-    private OrderSide(String name) {
-        this.name = name;
-        synchronized(OrderSide.class) {
-            known.put(name, this);
-        }
-    }
+	public String getName() {
+		return name;
+	}
 
-    public String getName() {
-        return name;
-    }
-
-    public String toString() {
-        return name;
-    }
-
-    static public Object[] toArray() {
-        return array;
-    }
-
-    public static OrderSide parse(String type)
-    throws IllegalArgumentException {
-        OrderSide result = known.get(type);
-        if(result == null) {
-            throw new IllegalArgumentException
-            ("OrderSide:  " + type + " is unknown.");
-        }
-        return result;
-    }
+	public String toString() {
+		return name;
+	}
 }

@@ -63,9 +63,9 @@ public class OrderEntryPanel extends JPanel implements Observer {
     private IntegerNumberTextField quantityTextField =
         new IntegerNumberTextField();
 
-    private JComboBox sideComboBox = new JComboBox(OrderSide.toArray());
-    private JComboBox typeComboBox = new JComboBox(OrderType.toArray());
-    private JComboBox tifComboBox = new JComboBox(OrderTIF.toArray());
+    private JComboBox<OrderSide> sideComboBox = new JComboBox<OrderSide>(OrderSide.values());
+    private JComboBox<OrderType> typeComboBox = new JComboBox<OrderType>(OrderType.values());
+    private JComboBox<OrderTIF> tifComboBox = new JComboBox<OrderTIF>(OrderTIF.values());
 
     private DoubleNumberTextField limitPriceTextField =
         new DoubleNumberTextField();
