@@ -5,32 +5,32 @@ import quickfix.field.Side;
 import quickfix.field.TimeInForce;
 
 public class TypeMapping {
-	static private TwoWayMap sideMap = new TwoWayMap();
-	static private TwoWayMap typeMap = new TwoWayMap();
-	static private TwoWayMap tifMap = new TwoWayMap();
+	static private TwoWayMap<OrderSide, Side> sideMap = new TwoWayMap<OrderSide, Side>();
+	static private TwoWayMap<OrderType, OrdType> typeMap = new TwoWayMap<OrderType, OrdType>();
+	static private TwoWayMap<OrderTIF, TimeInForce> tifMap = new TwoWayMap<OrderTIF, TimeInForce>();
 
 	public static Side sideToFIXSide(OrderSide side) {
-		return (Side) sideMap.getFirst(side);
+		return sideMap.getFirst(side);
 	}
 
 	public static OrderSide FIXSideToSide(Side side) {
-		return (OrderSide) sideMap.getSecond(side);
+		return sideMap.getSecond(side);
 	}
 
 	public static OrdType typeToFIXType(OrderType type) {
-		return (OrdType) typeMap.getFirst(type);
+		return typeMap.getFirst(type);
 	}
 
 	public static OrderType FIXTypeToType(OrdType type) {
-		return (OrderType) typeMap.getSecond(type);
+		return typeMap.getSecond(type);
 	}
 
 	public static TimeInForce tifToFIXTif(OrderTIF tif) {
-		return (TimeInForce) tifMap.getFirst(tif);
+		return tifMap.getFirst(tif);
 	}
 
 	public static OrderTIF FIXTifToTif(TimeInForce tif) {
-		return (OrderTIF) typeMap.getSecond(tif);
+		return tifMap.getSecond(tif);
 	}
 
 	static {
