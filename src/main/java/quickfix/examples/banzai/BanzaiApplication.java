@@ -19,58 +19,20 @@
 
 package quickfix.examples.banzai;
 
+import static quickfix.examples.banzai.TypeMapping.*;
+
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
 
 import javax.swing.SwingUtilities;
 
-import quickfix.Application;
-import quickfix.DefaultMessageFactory;
-import quickfix.DoNotSend;
-import quickfix.FieldNotFound;
-import quickfix.FixVersions;
-import quickfix.IncorrectDataFormat;
-import quickfix.IncorrectTagValue;
-import quickfix.Message;
-import quickfix.RejectLogon;
-import quickfix.Session;
-import quickfix.SessionID;
-import quickfix.SessionNotFound;
-import quickfix.UnsupportedMessageType;
-import quickfix.field.AvgPx;
-import quickfix.field.BeginString;
-import quickfix.field.BusinessRejectReason;
-import quickfix.field.ClOrdID;
-import quickfix.field.CumQty;
-import quickfix.field.CxlType;
-import quickfix.field.DeliverToCompID;
-import quickfix.field.ExecID;
-import quickfix.field.HandlInst;
-import quickfix.field.LastPx;
-import quickfix.field.LastShares;
-import quickfix.field.LeavesQty;
-import quickfix.field.LocateReqd;
-import quickfix.field.MsgSeqNum;
-import quickfix.field.MsgType;
-import quickfix.field.OrdStatus;
-import quickfix.field.OrdType;
-import quickfix.field.OrderQty;
-import quickfix.field.OrigClOrdID;
-import quickfix.field.Price;
-import quickfix.field.RefMsgType;
-import quickfix.field.RefSeqNum;
-import quickfix.field.SenderCompID;
-import quickfix.field.SessionRejectReason;
-import quickfix.field.Side;
-import quickfix.field.StopPx;
-import quickfix.field.Symbol;
-import quickfix.field.TargetCompID;
-import quickfix.field.Text;
-import quickfix.field.TimeInForce;
-import quickfix.field.TransactTime;
+import quickfix.*;
+import quickfix.examples.banzai.fixformat.*;
+import quickfix.field.*;
 
 public class BanzaiApplication implements Application {
     private DefaultMessageFactory messageFactory = new DefaultMessageFactory();
@@ -81,10 +43,9 @@ public class BanzaiApplication implements Application {
     private boolean isAvailable = true;
     private boolean isMissingField;
     
-    static private TwoWayMap sideMap = new TwoWayMap();
-    static private TwoWayMap typeMap = new TwoWayMap();
-    static private TwoWayMap tifMap = new TwoWayMap();
     static private HashMap<SessionID, HashSet<ExecID>> execIDs = new HashMap<SessionID, HashSet<ExecID>>();
+    
+    static private Map<String, FixMessageBuilder> fixMessageBuilders = new HashMap<String, FixMessageBuilder>();
 
     public BanzaiApplication(OrderTableModel orderTableModel,
             ExecutionTableModel executionTableModel) {
@@ -303,79 +264,13 @@ public class BanzaiApplication implements Application {
 
     public void send(Order order) {
         String beginString = order.getSessionID().getBeginString();
-        if (beginString.equals(FixVersions.BEGINSTRING_FIX40))
-            send40(order);
-        else if (beginString.equals(FixVersions.BEGINSTRING_FIX41))
-            send41(order);
-        else if (beginString.equals(FixVersions.BEGINSTRING_FIX42))
-            send42(order);
-        else if (beginString.equals(FixVersions.BEGINSTRING_FIX43))
-            send43(order);
-        else if (beginString.equals(FixVersions.BEGINSTRING_FIX44))
-            send44(order);
-        else if (beginString.equals(FixVersions.BEGINSTRING_FIXT11))
-            send50(order);
+        FixMessageBuilder builder = getFixMessageBuilder(beginString);
+        quickfix.Message newOrderSingle = builder.send(order);
+        send(populateOrder(order, newOrderSingle), order.getSessionID());
         return;
     }
 
-    public void send40(Order order) {
-        quickfix.fix40.NewOrderSingle newOrderSingle = new quickfix.fix40.NewOrderSingle(
-                new ClOrdID(order.getID()), new HandlInst('1'), new Symbol(order.getSymbol()),
-                sideToFIXSide(order.getSide()), new OrderQty(order.getQuantity()),
-                typeToFIXType(order.getType()));
-
-        send(populateOrder(order, newOrderSingle), order.getSessionID());
-    }
-
-    public void send41(Order order) {
-        quickfix.fix41.NewOrderSingle newOrderSingle = new quickfix.fix41.NewOrderSingle(
-                new ClOrdID(order.getID()), new HandlInst('1'), new Symbol(order.getSymbol()),
-                sideToFIXSide(order.getSide()), typeToFIXType(order.getType()));
-        newOrderSingle.set(new OrderQty(order.getQuantity()));
-
-        send(populateOrder(order, newOrderSingle), order.getSessionID());
-    }
-
-    public void send42(Order order) {
-        quickfix.fix42.NewOrderSingle newOrderSingle = new quickfix.fix42.NewOrderSingle(
-                new ClOrdID(order.getID()), new HandlInst('1'), new Symbol(order.getSymbol()),
-                sideToFIXSide(order.getSide()), new TransactTime(), typeToFIXType(order.getType()));
-        newOrderSingle.set(new OrderQty(order.getQuantity()));
-
-        send(populateOrder(order, newOrderSingle), order.getSessionID());
-    }
-
-    public void send43(Order order) {
-        quickfix.fix43.NewOrderSingle newOrderSingle = new quickfix.fix43.NewOrderSingle(
-                new ClOrdID(order.getID()), new HandlInst('1'), sideToFIXSide(order.getSide()),
-                new TransactTime(), typeToFIXType(order.getType()));
-        newOrderSingle.set(new OrderQty(order.getQuantity()));
-        newOrderSingle.set(new Symbol(order.getSymbol()));
-        send(populateOrder(order, newOrderSingle), order.getSessionID());
-    }
-
-    public void send44(Order order) {
-        quickfix.fix44.NewOrderSingle newOrderSingle = new quickfix.fix44.NewOrderSingle(
-                new ClOrdID(order.getID()), sideToFIXSide(order.getSide()),
-                new TransactTime(), typeToFIXType(order.getType()));
-        newOrderSingle.set(new OrderQty(order.getQuantity()));
-        newOrderSingle.set(new Symbol(order.getSymbol()));
-        newOrderSingle.set(new HandlInst('1'));
-        send(populateOrder(order, newOrderSingle), order.getSessionID());
-    }
-
-    public void send50(Order order) {
-        quickfix.fix50.NewOrderSingle newOrderSingle = new quickfix.fix50.NewOrderSingle(
-                new ClOrdID(order.getID()), sideToFIXSide(order.getSide()),
-                new TransactTime(), typeToFIXType(order.getType()));
-        newOrderSingle.set(new OrderQty(order.getQuantity()));
-        newOrderSingle.set(new Symbol(order.getSymbol()));
-        newOrderSingle.set(new HandlInst('1'));
-        send(populateOrder(order, newOrderSingle), order.getSessionID());
-    }
-
     public quickfix.Message populateOrder(Order order, quickfix.Message newOrderSingle) {
-
         OrderType type = order.getType();
 
         if (type == OrderType.LIMIT)
@@ -398,120 +293,30 @@ public class BanzaiApplication implements Application {
 
     public void cancel(Order order) {
         String beginString = order.getSessionID().getBeginString();
-        if (beginString.equals("FIX.4.0"))
-            cancel40(order);
-        else if (beginString.equals("FIX.4.1"))
-            cancel41(order);
-        else if (beginString.equals("FIX.4.2"))
-            cancel42(order);
+        FixMessageBuilder builder = getFixMessageBuilder(beginString);
+        
+        quickfix.Message message = builder.cancel(order);
+        
+        orderTableModel.addID(order, order.getID());
+        send(message, order.getSessionID());
         return;
-    }
-
-    public void cancel40(Order order) {
-        String id = order.generateID();
-        quickfix.fix40.OrderCancelRequest message = new quickfix.fix40.OrderCancelRequest(
-                new OrigClOrdID(order.getID()), new ClOrdID(id), new CxlType(CxlType.FULL_REMAINING_QUANTITY), new Symbol(order
-                        .getSymbol()), sideToFIXSide(order.getSide()), new OrderQty(order
-                        .getQuantity()));
-
-        orderTableModel.addID(order, id);
-        send(message, order.getSessionID());
-    }
-
-    public void cancel41(Order order) {
-        String id = order.generateID();
-        quickfix.fix41.OrderCancelRequest message = new quickfix.fix41.OrderCancelRequest(
-                new OrigClOrdID(order.getID()), new ClOrdID(id), new Symbol(order.getSymbol()),
-                sideToFIXSide(order.getSide()));
-        message.setField(new OrderQty(order.getQuantity()));
-
-        orderTableModel.addID(order, id);
-        send(message, order.getSessionID());
-    }
-
-    public void cancel42(Order order) {
-        String id = order.generateID();
-        quickfix.fix42.OrderCancelRequest message = new quickfix.fix42.OrderCancelRequest(
-                new OrigClOrdID(order.getID()), new ClOrdID(id), new Symbol(order.getSymbol()),
-                sideToFIXSide(order.getSide()), new TransactTime());
-        message.setField(new OrderQty(order.getQuantity()));
-
-        orderTableModel.addID(order, id);
-        send(message, order.getSessionID());
     }
 
     public void replace(Order order, Order newOrder) {
         String beginString = order.getSessionID().getBeginString();
-        if (beginString.equals("FIX.4.0"))
-            replace40(order, newOrder);
-        else if (beginString.equals("FIX.4.1"))
-            replace41(order, newOrder);
-        else if (beginString.equals("FIX.4.2"))
-            replace42(order, newOrder);
+        FixMessageBuilder builder = getFixMessageBuilder(beginString);
+        quickfix.Message message = builder.replace(order, newOrder);
+        orderTableModel.addID(order, newOrder.getID());
+        send(populateCancelReplace(order, newOrder, message), order.getSessionID());
         return;
     }
 
-    public void replace40(Order order, Order newOrder) {
-        quickfix.fix40.OrderCancelReplaceRequest message = new quickfix.fix40.OrderCancelReplaceRequest(
-                new OrigClOrdID(order.getID()), new ClOrdID(newOrder.getID()), new HandlInst('1'),
-                new Symbol(order.getSymbol()), sideToFIXSide(order.getSide()), new OrderQty(
-                        newOrder.getQuantity()), typeToFIXType(order.getType()));
-
-        orderTableModel.addID(order, newOrder.getID());
-        send(populateCancelReplace(order, newOrder, message), order.getSessionID());
-    }
-
-    public void replace41(Order order, Order newOrder) {
-        quickfix.fix41.OrderCancelReplaceRequest message = new quickfix.fix41.OrderCancelReplaceRequest(
-                new OrigClOrdID(order.getID()), new ClOrdID(newOrder.getID()), new HandlInst('1'),
-                new Symbol(order.getSymbol()), sideToFIXSide(order.getSide()), typeToFIXType(order
-                        .getType()));
-
-        orderTableModel.addID(order, newOrder.getID());
-        send(populateCancelReplace(order, newOrder, message), order.getSessionID());
-    }
-
-    public void replace42(Order order, Order newOrder) {
-        quickfix.fix42.OrderCancelReplaceRequest message = new quickfix.fix42.OrderCancelReplaceRequest(
-                new OrigClOrdID(order.getID()), new ClOrdID(newOrder.getID()), new HandlInst('1'),
-                new Symbol(order.getSymbol()), sideToFIXSide(order.getSide()), new TransactTime(),
-                typeToFIXType(order.getType()));
-
-        orderTableModel.addID(order, newOrder.getID());
-        send(populateCancelReplace(order, newOrder, message), order.getSessionID());
-    }
-
     Message populateCancelReplace(Order order, Order newOrder, quickfix.Message message) {
-
         if (order.getQuantity() != newOrder.getQuantity())
             message.setField(new OrderQty(newOrder.getQuantity()));
         if (!order.getLimit().equals(newOrder.getLimit()))
             message.setField(new Price(newOrder.getLimit().doubleValue()));
         return message;
-    }
-
-    public Side sideToFIXSide(OrderSide side) {
-        return (Side) sideMap.getFirst(side);
-    }
-
-    public OrderSide FIXSideToSide(Side side) {
-        return (OrderSide) sideMap.getSecond(side);
-    }
-
-    public OrdType typeToFIXType(OrderType type) {
-        return (OrdType) typeMap.getFirst(type);
-    }
-
-    public OrderType FIXTypeToType(OrdType type) {
-        return (OrderType) typeMap.getSecond(type);
-    }
-
-    public TimeInForce tifToFIXTif(OrderTIF tif) {
-        return (TimeInForce) tifMap.getFirst(tif);
-    }
-
-    public OrderTIF FIXTifToTif(TimeInForce tif) {
-        return (OrderTIF) typeMap.getSecond(tif);
     }
 
     public void addLogonObserver(Observer observer) {
@@ -555,27 +360,6 @@ public class BanzaiApplication implements Application {
             clearChanged();
         }
     }
-
-    static {
-        sideMap.put(OrderSide.BUY, new Side(Side.BUY));
-        sideMap.put(OrderSide.SELL, new Side(Side.SELL));
-        sideMap.put(OrderSide.SHORT_SELL, new Side(Side.SELL_SHORT));
-        sideMap.put(OrderSide.SHORT_SELL_EXEMPT, new Side(Side.SELL_SHORT_EXEMPT));
-        sideMap.put(OrderSide.CROSS, new Side(Side.CROSS));
-        sideMap.put(OrderSide.CROSS_SHORT, new Side(Side.CROSS_SHORT));
-
-        typeMap.put(OrderType.MARKET, new OrdType(OrdType.MARKET));
-        typeMap.put(OrderType.LIMIT, new OrdType(OrdType.LIMIT));
-        typeMap.put(OrderType.STOP, new OrdType(OrdType.STOP));
-        typeMap.put(OrderType.STOP_LIMIT, new OrdType(OrdType.STOP_LIMIT));
-
-        tifMap.put(OrderTIF.DAY, new TimeInForce(TimeInForce.DAY));
-        tifMap.put(OrderTIF.IOC, new TimeInForce(TimeInForce.IMMEDIATE_OR_CANCEL));
-        tifMap.put(OrderTIF.OPG, new TimeInForce(TimeInForce.AT_THE_OPENING));
-        tifMap.put(OrderTIF.GTC, new TimeInForce(TimeInForce.GOOD_TILL_CANCEL));
-        tifMap.put(OrderTIF.GTX, new TimeInForce(TimeInForce.GOOD_TILL_CROSSING));
-
-    }
     
     public boolean isMissingField() {
         return isMissingField;
@@ -591,5 +375,18 @@ public class BanzaiApplication implements Application {
     
     public void setAvailable(boolean isAvailable) {
         this.isAvailable = isAvailable;
+    }
+    
+    private FixMessageBuilder getFixMessageBuilder(String beginString) {
+    	return fixMessageBuilders.get(beginString);
+    }
+    
+    static {
+    	fixMessageBuilders.put(FixVersions.BEGINSTRING_FIX40, new Fix40MessageBuilder());
+    	fixMessageBuilders.put(FixVersions.BEGINSTRING_FIX41, new Fix41MessageBuilder());
+    	fixMessageBuilders.put(FixVersions.BEGINSTRING_FIX42, new Fix42MessageBuilder());
+    	fixMessageBuilders.put(FixVersions.BEGINSTRING_FIX43, new Fix43MessageBuilder());
+    	fixMessageBuilders.put(FixVersions.BEGINSTRING_FIX44, new Fix44MessageBuilder());
+    	fixMessageBuilders.put(FixVersions.BEGINSTRING_FIXT11, new Fix50MessageBuilder());
     }
 }
