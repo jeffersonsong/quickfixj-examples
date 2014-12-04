@@ -20,11 +20,12 @@
 package quickfix.examples.banzai.ui;
 
 import quickfix.examples.banzai.BanzaiApplication;
-import quickfix.examples.banzai.Order;
 import quickfix.examples.banzai.OrderTableModel;
+import quickfix.examples.banzai.model.Order;
 
 import javax.swing.table.*;
 import javax.swing.*;
+
 import java.awt.*;
 import java.awt.event.*;
 

@@ -23,6 +23,8 @@ import java.util.HashMap;
 
 import javax.swing.table.AbstractTableModel;
 
+import quickfix.examples.banzai.model.Order;
+
 public class OrderTableModel extends AbstractTableModel {
 
     private final static int SYMBOL = 0;

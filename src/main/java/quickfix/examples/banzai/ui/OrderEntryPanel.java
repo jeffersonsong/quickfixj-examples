@@ -45,12 +45,12 @@ import quickfix.SessionID;
 import quickfix.examples.banzai.BanzaiApplication;
 import quickfix.examples.banzai.DoubleNumberTextField;
 import quickfix.examples.banzai.IntegerNumberTextField;
-import quickfix.examples.banzai.LogonEvent;
-import quickfix.examples.banzai.Order;
-import quickfix.examples.banzai.OrderSide;
-import quickfix.examples.banzai.OrderTIF;
 import quickfix.examples.banzai.OrderTableModel;
-import quickfix.examples.banzai.OrderType;
+import quickfix.examples.banzai.model.LogonEvent;
+import quickfix.examples.banzai.model.Order;
+import quickfix.examples.banzai.model.OrderSide;
+import quickfix.examples.banzai.model.OrderTIF;
+import quickfix.examples.banzai.model.OrderType;
 
 public class OrderEntryPanel extends JPanel implements Observer {
     private boolean symbolEntered = false;

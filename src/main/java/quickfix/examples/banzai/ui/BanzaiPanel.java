@@ -36,8 +36,8 @@ import javax.swing.event.ListSelectionListener;
 
 import quickfix.examples.banzai.BanzaiApplication;
 import quickfix.examples.banzai.ExecutionTableModel;
-import quickfix.examples.banzai.Order;
 import quickfix.examples.banzai.OrderTableModel;
+import quickfix.examples.banzai.model.Order;
 
 /**
  *  Main content panel

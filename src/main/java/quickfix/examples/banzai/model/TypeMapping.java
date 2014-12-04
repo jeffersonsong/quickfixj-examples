@@ -1,4 +1,4 @@
-package quickfix.examples.banzai;
+package quickfix.examples.banzai.model;
 
 import quickfix.field.OrdType;
 import quickfix.field.Side;

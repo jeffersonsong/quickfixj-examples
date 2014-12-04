@@ -20,10 +20,12 @@
 package quickfix.examples.banzai.ui;
 
 import javax.swing.*;
+
 import java.awt.*;
 import java.awt.event.*;
 
 import quickfix.examples.banzai.*;
+import quickfix.examples.banzai.model.Order;
 
 public class CancelReplacePanel extends JPanel {
     private JLabel quantityLabel = new JLabel("Quantity");

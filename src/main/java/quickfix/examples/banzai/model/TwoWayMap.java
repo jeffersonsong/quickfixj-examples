@@ -17,7 +17,7 @@
  * are not clear to you.
  ******************************************************************************/
 
-package quickfix.examples.banzai;
+package quickfix.examples.banzai.model;
 
 import java.util.HashMap;
 

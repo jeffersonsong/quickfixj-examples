@@ -17,7 +17,8 @@
  * are not clear to you.
  ******************************************************************************/
 
-package quickfix.examples.banzai;
+package quickfix.examples.banzai.model;
+
 
 public class Execution {
     private String symbol = null;
