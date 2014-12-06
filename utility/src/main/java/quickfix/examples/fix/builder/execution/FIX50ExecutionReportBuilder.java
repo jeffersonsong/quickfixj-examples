@@ -15,7 +15,7 @@ import quickfix.field.OrderQty;
 import quickfix.fix50.ExecutionReport;
 import quickfix.fix50.NewOrderSingle;
 
-public class FIX50ExecutionReportBuilder implements ExecutionReportBuilder {
+public class FIX50ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 
 	public Message ack(Message message, String orderID, String execID)
 			throws FieldNotFound {

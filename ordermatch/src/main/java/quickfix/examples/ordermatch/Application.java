@@ -19,8 +19,6 @@
 
 package quickfix.examples.ordermatch;
 
-import static quickfix.examples.ordermatch.FixMessageHelper.reject;
-
 import java.util.ArrayList;
 
 import org.slf4j.Logger;
@@ -37,14 +35,16 @@ import quickfix.Session;
 import quickfix.SessionID;
 import quickfix.SessionNotFound;
 import quickfix.UnsupportedMessageType;
+import quickfix.examples.fix.builder.execution.ExecutionReportBuilder;
+import quickfix.examples.fix.builder.execution.FIX42ExecutionReportBuilder;
 import quickfix.examples.utility.MessageSender;
 import quickfix.field.NoRelatedSym;
+import quickfix.field.OrdStatus;
 import quickfix.field.OrigClOrdID;
 import quickfix.field.Side;
 import quickfix.field.SubscriptionRequestType;
 import quickfix.field.Symbol;
 import quickfix.field.TimeInForce;
-import quickfix.fix42.ExecutionReport;
 import quickfix.fix42.MarketDataRequest;
 import quickfix.fix42.NewOrderSingle;
 import quickfix.fix42.OrderCancelRequest;
@@ -56,6 +56,7 @@ public class Application extends MessageCracker implements quickfix.Application 
 	private OrderMatcher orderMatcher = new OrderMatcher();
 	private IdGenerator generator = new IdGenerator();
 	private final MessageSender messageSender;
+	private ExecutionReportBuilder fix42Builder = new FIX42ExecutionReportBuilder();
 
 	public Application() {
 		this(new MessageSender() {
@@ -103,7 +104,7 @@ public class Application extends MessageCracker implements quickfix.Application 
 			rejectOrder(message, e.getMessage());
 		}
 	}
-	
+
 	private void processOrder(Order order) throws FieldNotFound {
 		if (orderMatcher.insert(order)) {
 			acceptOrder(order);
@@ -119,30 +120,34 @@ public class Application extends MessageCracker implements quickfix.Application 
 			rejectOrder(order);
 		}
 	}
-	
+
 	private void rejectOrder(NewOrderSingle request, String message)
 			throws FieldNotFound {
-		ExecutionReport execRpt = reject(generator.genExecutionID(),
-				generator.genOrderID(), request, message);
+		Message execRpt = fix42Builder.reject(request,
+				generator.genExecutionID(), generator.genOrderID(), message);
 
 		send(execRpt);
 	}
 
 	private void rejectOrder(Order order) throws FieldNotFound {
-		Message execRpt = FixMessageHelper.reject(generator.genExecutionID(),
-				order, (NewOrderSingle) order.getMessage());
+		Message execRpt = fix42Builder.reject(order.getMessage(),
+				generator.genExecutionID(), generator.genOrderID(), "");
 		send(execRpt);
 	}
 
 	private void acceptOrder(Order order) throws FieldNotFound {
-		Message execRpt = FixMessageHelper.ack(generator.genExecutionID(),
-				order, (NewOrderSingle) order.getMessage());
+		Message execRpt = fix42Builder.ack(order.getMessage(),
+				order.getOrderID(), generator.genExecutionID());
 		send(execRpt);
 	}
 
 	private void fillOrder(Order order) throws FieldNotFound {
-		Message execRpt = FixMessageHelper.fill(generator.genExecutionID(),
-				order, (NewOrderSingle) order.getMessage());
+		char ordStatus = order.getExecutedQuantity() == order.getQuantity() ? OrdStatus.FILLED
+				: OrdStatus.PARTIALLY_FILLED;
+		Message execRpt = fix42Builder.fill(order.getMessage(),
+				order.getOrderID(), generator.genExecutionID(), ordStatus,
+				order.getExecutedQuantity(), order.getAvgExecutedPrice(),
+				order.getLastExecutedQuantity(), order.getLastExecutedPrice());
 		send(execRpt);
 	}
 
@@ -159,8 +164,9 @@ public class Application extends MessageCracker implements quickfix.Application 
 
 	private void cancelOrder(Order order, OrderCancelRequest message)
 			throws FieldNotFound {
-		ExecutionReport execRpt = FixMessageHelper.canceled(
-				generator.genExecutionID(), order.getOrderID(), order, message);
+		Message execRpt = fix42Builder.canceled(message, order.getOrderID(),
+				generator.genExecutionID(), order.getExecutedQuantity(),
+				order.getAvgExecutedPrice());
 		send(execRpt);
 	}
 
