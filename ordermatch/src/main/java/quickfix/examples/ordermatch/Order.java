@@ -21,6 +21,7 @@ package quickfix.examples.ordermatch;
 
 import quickfix.FieldNotFound;
 import quickfix.Message;
+import quickfix.field.ClOrdID;
 import quickfix.field.OrdType;
 import quickfix.field.OrderQty;
 import quickfix.field.Price;
@@ -32,6 +33,7 @@ import quickfix.fix42.NewOrderSingle;
 public class Order {
 	private long entryTime;
 	private String orderID;
+	private String clOrdID;
 	private String symbol;
 	private String owner;
 	private char side;
@@ -50,6 +52,8 @@ public class Order {
 
 		this.orderID = orderID;
 		this.message = message;
+		
+		this.clOrdID = message.getString(ClOrdID.FIELD);
 
 		this.symbol = message.getString(Symbol.FIELD);
 		this.owner = message.getHeader().getString(SenderCompID.FIELD);
@@ -70,6 +74,10 @@ public class Order {
 
 	public String getOrderID() {
 		return orderID;
+	}
+	
+	public String getClOrdID() {
+		return this.clOrdID;
 	}
 
 	public long getExecutedQuantity() {

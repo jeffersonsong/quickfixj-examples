@@ -131,22 +131,33 @@ public class Application extends MessageCracker implements quickfix.Application 
 	}
 
 	private void rejectOrder(Order order) {
-		updateOrder(order, OrdStatus.REJECTED);
+		updateOrder(order, OrdStatus.REJECTED, (NewOrderSingle)order.getMessage());
 	}
 
 	private void acceptOrder(Order order) {
-		updateOrder(order, OrdStatus.NEW);
+		updateOrder(order, OrdStatus.NEW, (NewOrderSingle)order.getMessage());
 	}
 
-	private void cancelOrder(Order order) {
-		updateOrder(order, OrdStatus.CANCELED);
+	private void cancelOrder(Order order, OrderCancelRequest message) {
+		updateOrder(order, OrdStatus.CANCELED, message);
 	}
 
-	private void updateOrder(Order order, char status) {
+	private void updateOrder(Order order, char status, NewOrderSingle request) {
 		try {
 			ExecutionReport fixOrder = FixMessageHelper.updateOrder(
 					generator.genExecutionID(), order.getOrderID(), order,
-					status);
+					status, request);
+			messageSender.sendToTarget(fixOrder);
+		} catch (SessionNotFound e) {
+		} catch (FieldNotFound e) {
+		}
+	}
+	
+	private void updateOrder(Order order, char status, OrderCancelRequest request) {
+		try {
+			ExecutionReport fixOrder = FixMessageHelper.updateOrder(
+					generator.genExecutionID(), order.getOrderID(), order,
+					status, request);
 			messageSender.sendToTarget(fixOrder);
 		} catch (SessionNotFound e) {
 		} catch (FieldNotFound e) {
@@ -155,7 +166,7 @@ public class Application extends MessageCracker implements quickfix.Application 
 
 	private void fillOrder(Order order) {
 		updateOrder(order, order.isFilled() ? OrdStatus.FILLED
-				: OrdStatus.PARTIALLY_FILLED);
+				: OrdStatus.PARTIALLY_FILLED, (NewOrderSingle)order.getMessage());
 	}
 
 	public void onMessage(OrderCancelRequest message, SessionID sessionID)
@@ -165,7 +176,7 @@ public class Application extends MessageCracker implements quickfix.Application 
 		String id = message.getString(OrigClOrdID.FIELD);
 		Order order = orderMatcher.find(symbol, side, id);
 		order.cancel();
-		cancelOrder(order);
+		cancelOrder(order, message);
 		orderMatcher.erase(order);
 	}
 

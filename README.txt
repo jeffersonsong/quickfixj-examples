@@ -1,3 +1,12 @@
+Enhanced version of quickfixj examples
+1. Cleanup design
+
+order match
+1. Integrate with Cucumber test cases.
+2. Support multi version of Fix protocol
+3. Support cancel replace
+4. Implement in scala
+
 Install quickfix/J jars into local maven repository
 
 mvn install:install-file -Dfile=quickfixj-core-1.5.3.jar -DgroupId=quickfixj -DartifactId=quickfixj-core -Dversion=1.5.3 -Dpackaging=jar

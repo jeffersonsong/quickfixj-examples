@@ -14,7 +14,7 @@ import quickfix.Message;
 
 public class CompareMessages {
 	private static String SEPARATOR = "\001";
-	private static int[] excludeTags = { 9, 10, 37, 52, 60 };
+	private static int[] excludeTags = { 9, 10, 11, 17, 19, 37, 41, 52, 60 };
 
 	public static void compareMessages(List<Message> actualMessages,
 			char delimiter, String... expectedMessageStrs)
