@@ -32,6 +32,7 @@ import quickfix.Session;
 import quickfix.SessionID;
 import quickfix.SessionNotFound;
 import quickfix.UnsupportedMessageType;
+import quickfix.examples.utility.MessageSender;
 import quickfix.field.AvgPx;
 import quickfix.field.ClOrdID;
 import quickfix.field.CumQty;
@@ -61,177 +62,210 @@ import quickfix.fix42.NewOrderSingle;
 import quickfix.fix42.OrderCancelRequest;
 
 public class Application extends MessageCracker implements quickfix.Application {
-    private OrderMatcher orderMatcher = new OrderMatcher();
-    private IdGenerator generator = new IdGenerator();
+	private OrderMatcher orderMatcher = new OrderMatcher();
+	private IdGenerator generator = new IdGenerator();
+	private final MessageSender messageSender;
 
-    public void fromAdmin(Message message, SessionID sessionId) throws FieldNotFound,
-            IncorrectDataFormat, IncorrectTagValue, RejectLogon {
-    }
+	public Application() {
+		this(new MessageSender() {
+			public boolean sendToTarget(Message message) throws SessionNotFound {
+				try {
+					return Session.sendToTarget(message);
+				} catch (SessionNotFound e) {
+					e.printStackTrace();
+					return false;
+				}
+			}
+		});
+	}
 
-    public void fromApp(Message message, SessionID sessionId) throws FieldNotFound,
-            IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType {
-        crack(message, sessionId);
-    }
+	public Application(MessageSender messageSender) {
+		this.messageSender = messageSender;
+	}
 
-    public void onMessage(NewOrderSingle message, SessionID sessionID) throws FieldNotFound,
-            UnsupportedMessageType, IncorrectTagValue {
-        String senderCompId = message.getHeader().getString(SenderCompID.FIELD);
-        String targetCompId = message.getHeader().getString(TargetCompID.FIELD);
-        String clOrdId = message.getString(ClOrdID.FIELD);
-        String symbol = message.getString(Symbol.FIELD);
-        char side = message.getChar(Side.FIELD);
-        char ordType = message.getChar(OrdType.FIELD);
+	public void fromAdmin(Message message, SessionID sessionId)
+			throws FieldNotFound, IncorrectDataFormat, IncorrectTagValue,
+			RejectLogon {
+	}
 
-        double price = 0;
-        if (ordType == OrdType.LIMIT) {
-            price = message.getDouble(Price.FIELD);
-        }
+	public void fromApp(Message message, SessionID sessionId)
+			throws FieldNotFound, IncorrectDataFormat, IncorrectTagValue,
+			UnsupportedMessageType {
+		crack(message, sessionId);
+	}
 
-        double qty = message.getDouble(OrderQty.FIELD);
-        char timeInForce = TimeInForce.DAY;
-        if (message.isSetField(TimeInForce.FIELD)) {
-            timeInForce = message.getChar(TimeInForce.FIELD);
-        }
+	public void onMessage(NewOrderSingle message, SessionID sessionID)
+			throws FieldNotFound, UnsupportedMessageType, IncorrectTagValue {
+		String senderCompId = message.getHeader().getString(SenderCompID.FIELD);
+		String targetCompId = message.getHeader().getString(TargetCompID.FIELD);
+		String clOrdId = message.getString(ClOrdID.FIELD);
+		String symbol = message.getString(Symbol.FIELD);
+		char side = message.getChar(Side.FIELD);
+		char ordType = message.getChar(OrdType.FIELD);
 
-        try {
-            if (timeInForce != TimeInForce.DAY) {
-                throw new RuntimeException("Unsupported TIF, use Day");
-            }
+		double price = 0;
+		if (ordType == OrdType.LIMIT) {
+			price = message.getDouble(Price.FIELD);
+		}
 
-            Order order = new Order(clOrdId, symbol, senderCompId, targetCompId, side, ordType,
-                    price, (int) qty);
+		double qty = message.getDouble(OrderQty.FIELD);
+		char timeInForce = TimeInForce.DAY;
+		if (message.isSetField(TimeInForce.FIELD)) {
+			timeInForce = message.getChar(TimeInForce.FIELD);
+		}
 
-            processOrder(order);
-        } catch (Exception e) {
-            rejectOrder(senderCompId, targetCompId, clOrdId, symbol, side, e.getMessage());
-        }
-    }
+		try {
+			if (timeInForce != TimeInForce.DAY) {
+				throw new RuntimeException("Unsupported TIF, use Day");
+			}
 
-    private void rejectOrder(String senderCompId, String targetCompId, String clOrdId,
-            String symbol, char side, String message) {
+			Order order = new Order(clOrdId, symbol, senderCompId,
+					targetCompId, side, ordType, price, (int) qty);
 
-        ExecutionReport fixOrder = new ExecutionReport(new OrderID(clOrdId), new ExecID(generator
-                .genExecutionID()), new ExecTransType(ExecTransType.NEW), new ExecType(
-                ExecType.REJECTED), new OrdStatus(ExecType.REJECTED), new Symbol(symbol), new Side(
-                side), new LeavesQty(0), new CumQty(0), new AvgPx(0));
+			processOrder(order);
+		} catch (Exception e) {
+			rejectOrder(senderCompId, targetCompId, clOrdId, symbol, side,
+					e.getMessage());
+		}
+	}
 
-        fixOrder.setString(ClOrdID.FIELD, clOrdId);
-        fixOrder.setString(Text.FIELD, message);
+	private void rejectOrder(String senderCompId, String targetCompId,
+			String clOrdId, String symbol, char side, String message) {
 
-        try {
-            Session.sendToTarget(fixOrder, senderCompId, targetCompId);
-        } catch (SessionNotFound e) {
-            e.printStackTrace();
-        }
+		ExecutionReport fixOrder = new ExecutionReport(new OrderID(clOrdId),
+				new ExecID(generator.genExecutionID()), new ExecTransType(
+						ExecTransType.NEW), new ExecType(ExecType.REJECTED),
+				new OrdStatus(ExecType.REJECTED), new Symbol(symbol), new Side(
+						side), new LeavesQty(0), new CumQty(0), new AvgPx(0));
 
-    }
+		fixOrder.setString(ClOrdID.FIELD, clOrdId);
+		fixOrder.setString(Text.FIELD, message);
+		fixOrder.getHeader().setString(SenderCompID.FIELD, senderCompId);
+		fixOrder.getHeader().setString(TargetCompID.FIELD, targetCompId);
 
-    private void processOrder(Order order) {
-        if (orderMatcher.insert(order)) {
-            acceptOrder(order);
+		try {
+			messageSender.sendToTarget(fixOrder);
+		} catch (SessionNotFound e) {
+			e.printStackTrace();
+		}
 
-            ArrayList<Order> orders = new ArrayList<Order>();
-            orderMatcher.match(order.getSymbol(), orders);
+	}
 
-            while (orders.size() > 0) {
-                fillOrder(orders.remove(0));
-            }
-            orderMatcher.display(order.getSymbol());
-        } else {
-            rejectOrder(order);
-        }
-    }
+	private void processOrder(Order order) {
+		if (orderMatcher.insert(order)) {
+			acceptOrder(order);
 
-    private void rejectOrder(Order order) {
-        updateOrder(order, OrdStatus.REJECTED);
-    }
+			ArrayList<Order> orders = new ArrayList<Order>();
+			orderMatcher.match(order.getSymbol(), orders);
 
-    private void acceptOrder(Order order) {
-        updateOrder(order, OrdStatus.NEW);
-    }
+			while (orders.size() > 0) {
+				fillOrder(orders.remove(0));
+			}
+			orderMatcher.display(order.getSymbol());
+		} else {
+			rejectOrder(order);
+		}
+	}
 
-    private void cancelOrder(Order order) {
-        updateOrder(order, OrdStatus.CANCELED);
-    }
+	private void rejectOrder(Order order) {
+		updateOrder(order, OrdStatus.REJECTED);
+	}
 
-    private void updateOrder(Order order, char status) {
-        String targetCompId = order.getOwner();
-        String senderCompId = order.getTarget();
+	private void acceptOrder(Order order) {
+		updateOrder(order, OrdStatus.NEW);
+	}
 
-        ExecutionReport fixOrder = new ExecutionReport(new OrderID(order.getClientOrderId()),
-                new ExecID(generator.genExecutionID()), new ExecTransType(ExecTransType.NEW),
-                new ExecType(status), new OrdStatus(status), new Symbol(order.getSymbol()),
-                new Side(order.getSide()), new LeavesQty(order.getOpenQuantity()), new CumQty(order
-                        .getExecutedQuantity()), new AvgPx(order.getAvgExecutedPrice()));
+	private void cancelOrder(Order order) {
+		updateOrder(order, OrdStatus.CANCELED);
+	}
 
-        fixOrder.setString(ClOrdID.FIELD, order.getClientOrderId());
-        fixOrder.setDouble(OrderQty.FIELD, order.getQuantity());
+	private void updateOrder(Order order, char status) {
+		String targetCompId = order.getOwner();
+		String senderCompId = order.getTarget();
 
-        if (status == OrdStatus.FILLED || status == OrdStatus.PARTIALLY_FILLED) {
-            fixOrder.setDouble(LastShares.FIELD, order.getLastExecutedQuantity());
-            fixOrder.setDouble(LastPx.FIELD, order.getPrice());
-        }
+		ExecutionReport fixOrder = new ExecutionReport(new OrderID(
+				order.getClientOrderId()), new ExecID(
+				generator.genExecutionID()), new ExecTransType(
+				ExecTransType.NEW), new ExecType(status),
+				new OrdStatus(status), new Symbol(order.getSymbol()), new Side(
+						order.getSide()),
+				new LeavesQty(order.getOpenQuantity()), new CumQty(
+						order.getExecutedQuantity()), new AvgPx(
+						order.getAvgExecutedPrice()));
 
-        try {
-            Session.sendToTarget(fixOrder, senderCompId, targetCompId);
-        } catch (SessionNotFound e) {
-        }
-    }
+		fixOrder.setString(ClOrdID.FIELD, order.getClientOrderId());
+		fixOrder.setDouble(OrderQty.FIELD, order.getQuantity());
 
-    private void fillOrder(Order order) {
-        updateOrder(order, order.isFilled() ? OrdStatus.FILLED : OrdStatus.PARTIALLY_FILLED);
-    }
+		if (status == OrdStatus.FILLED || status == OrdStatus.PARTIALLY_FILLED) {
+			fixOrder.setDouble(LastShares.FIELD,
+					order.getLastExecutedQuantity());
+			fixOrder.setDouble(LastPx.FIELD, order.getPrice());
+		}
+		fixOrder.getHeader().setString(SenderCompID.FIELD, senderCompId);
+		fixOrder.getHeader().setString(TargetCompID.FIELD, targetCompId);
 
-    public void onMessage(OrderCancelRequest message, SessionID sessionID) throws FieldNotFound,
-            UnsupportedMessageType, IncorrectTagValue {
-        String symbol = message.getString(Symbol.FIELD);
-        char side = message.getChar(Side.FIELD);
-        String id = message.getString(OrigClOrdID.FIELD);
-        Order order = orderMatcher.find(symbol, side, id);
-        order.cancel();
-        cancelOrder(order);
-        orderMatcher.erase(order);
-    }
+		try {
+			messageSender.sendToTarget(fixOrder);
+		} catch (SessionNotFound e) {
+		}
+	}
 
-    public void onMessage(MarketDataRequest message, SessionID sessionID) throws FieldNotFound,
-            UnsupportedMessageType, IncorrectTagValue {
-        MarketDataRequest.NoRelatedSym noRelatedSyms = new MarketDataRequest.NoRelatedSym();
+	private void fillOrder(Order order) {
+		updateOrder(order, order.isFilled() ? OrdStatus.FILLED
+				: OrdStatus.PARTIALLY_FILLED);
+	}
 
-        //String mdReqId = message.getString(MDReqID.FIELD);
-        char subscriptionRequestType = message.getChar(SubscriptionRequestType.FIELD);
+	public void onMessage(OrderCancelRequest message, SessionID sessionID)
+			throws FieldNotFound, UnsupportedMessageType, IncorrectTagValue {
+		String symbol = message.getString(Symbol.FIELD);
+		char side = message.getChar(Side.FIELD);
+		String id = message.getString(OrigClOrdID.FIELD);
+		Order order = orderMatcher.find(symbol, side, id);
+		order.cancel();
+		cancelOrder(order);
+		orderMatcher.erase(order);
+	}
 
-        if (subscriptionRequestType != SubscriptionRequestType.SNAPSHOT)
-            throw new IncorrectTagValue(SubscriptionRequestType.FIELD);
-        //int marketDepth = message.getInt(MarketDepth.FIELD);
-        int relatedSymbolCount = message.getInt(NoRelatedSym.FIELD);
+	public void onMessage(MarketDataRequest message, SessionID sessionID)
+			throws FieldNotFound, UnsupportedMessageType, IncorrectTagValue {
+		MarketDataRequest.NoRelatedSym noRelatedSyms = new MarketDataRequest.NoRelatedSym();
 
-        for (int i = 1; i <= relatedSymbolCount; ++i) {
-            message.getGroup(i, noRelatedSyms);
-            String symbol = noRelatedSyms.getString(Symbol.FIELD);
-            System.err.println("*** market data: " + symbol);
-        }
-    }
+		// String mdReqId = message.getString(MDReqID.FIELD);
+		char subscriptionRequestType = message
+				.getChar(SubscriptionRequestType.FIELD);
 
-    public void onCreate(SessionID sessionId) {
-    }
+		if (subscriptionRequestType != SubscriptionRequestType.SNAPSHOT)
+			throw new IncorrectTagValue(SubscriptionRequestType.FIELD);
+		// int marketDepth = message.getInt(MarketDepth.FIELD);
+		int relatedSymbolCount = message.getInt(NoRelatedSym.FIELD);
 
-    public void onLogon(SessionID sessionId) {
-        System.out.println("Logon - " + sessionId);
-    }
+		for (int i = 1; i <= relatedSymbolCount; ++i) {
+			message.getGroup(i, noRelatedSyms);
+			String symbol = noRelatedSyms.getString(Symbol.FIELD);
+			System.err.println("*** market data: " + symbol);
+		}
+	}
 
-    public void onLogout(SessionID sessionId) {
-        System.out.println("Logout - " + sessionId);
-    }
+	public void onCreate(SessionID sessionId) {
+	}
 
-    public void toAdmin(Message message, SessionID sessionId) {
-        // empty
-    }
+	public void onLogon(SessionID sessionId) {
+		System.out.println("Logon - " + sessionId);
+	}
 
-    public void toApp(Message message, SessionID sessionId) throws DoNotSend {
-        // empty
-    }
+	public void onLogout(SessionID sessionId) {
+		System.out.println("Logout - " + sessionId);
+	}
 
-    public OrderMatcher orderMatcher() {
-        return orderMatcher;
-    }
+	public void toAdmin(Message message, SessionID sessionId) {
+		// empty
+	}
+
+	public void toApp(Message message, SessionID sessionId) throws DoNotSend {
+		// empty
+	}
+
+	public OrderMatcher orderMatcher() {
+		return orderMatcher;
+	}
 }

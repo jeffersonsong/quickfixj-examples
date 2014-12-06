@@ -9,6 +9,9 @@ import quickfix.Message;
 import quickfix.MessageFactory;
 import quickfix.MessageUtils;
 
+/**
+ * Parse text message into FIX message. For testing purpose only.
+ */
 public class FixMessageUtil {
 	private static MessageFactory messageFactory = new DefaultMessageFactory();
 	private static DataDictionaryProvider dataDictionaryProvider = new DefaultDataDictionaryProvider();
@@ -55,11 +58,15 @@ public class FixMessageUtil {
 
 	private static String getBeginString(String messageString)
 			throws InvalidMessage {
-		final int index = messageString.indexOf(FIX_SEPARATOR);
-		if (index < 0) {
-			throw new InvalidMessage(
-					"Message does not contain any field separator");
+		if (messageString.startsWith("8=")) {
+			final int index = messageString.indexOf(FIX_SEPARATOR);
+			if (index < 0) {
+				throw new InvalidMessage(
+						"Message does not contain any field separator");
+			}
+			return messageString.substring(2, index);
+		} else {
+			return "FIX.4.2";
 		}
-		return messageString.substring(2, index);
 	}
 }

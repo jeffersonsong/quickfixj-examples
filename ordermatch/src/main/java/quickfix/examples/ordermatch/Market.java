@@ -134,7 +134,15 @@ public class Market {
         displaySide(askOrders, "ASKS");
     }
 
-    private void displaySide(List<Order> orders, String title) {
+    public List<Order> getBidOrders() {
+		return bidOrders;
+	}
+
+	public List<Order> getAskOrders() {
+		return askOrders;
+	}
+
+	private void displaySide(List<Order> orders, String title) {
         DecimalFormat priceFormat = new DecimalFormat("#.00");
         DecimalFormat qtyFormat = new DecimalFormat("######");
         System.out.println(title + ":\n----");
