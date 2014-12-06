@@ -24,7 +24,6 @@ import quickfix.fix42.OrderCancelRequest;
 public class FixMessageHelper {
 	public static ExecutionReport reject(String execID, String orderID,
 			NewOrderSingle request, String message) throws FieldNotFound {
-
 		ExecutionReport fixOrder = new ExecutionReport(new OrderID(orderID),
 				new ExecID(execID), new ExecTransType(ExecTransType.NEW),
 				new ExecType(ExecType.REJECTED), new OrdStatus(
@@ -38,10 +37,27 @@ public class FixMessageHelper {
 		return fixOrder;
 	}
 
-	public static ExecutionReport updateOrder(String execID, String orderID,
+	public static ExecutionReport reject(String execID, Order order,
+			NewOrderSingle request) throws FieldNotFound {
+		return updateOrder(execID, order, OrdStatus.REJECTED, request);
+	}
+
+	public static ExecutionReport ack(String execID, 
+			Order order, NewOrderSingle request) throws FieldNotFound {
+		return updateOrder(execID, order, OrdStatus.NEW, request);
+	}
+
+	public static ExecutionReport fill(String execID, 
+			Order order, NewOrderSingle request) throws FieldNotFound {
+		char status = order.getExecutedQuantity() == order.getQuantity() ? OrdStatus.FILLED
+				: OrdStatus.PARTIALLY_FILLED;
+		return updateOrder(execID, order, status, request);
+	}
+
+	private static ExecutionReport updateOrder(String execID, 
 			Order order, char status, NewOrderSingle request)
 			throws FieldNotFound {
-		ExecutionReport fixOrder = new ExecutionReport(new OrderID(orderID),
+		ExecutionReport fixOrder = new ExecutionReport(new OrderID(order.getOrderID()),
 				new ExecID(execID), new ExecTransType(ExecTransType.NEW),
 				new ExecType(status), new OrdStatus(status),
 				request.getSymbol(), request.getSide(), new LeavesQty(
@@ -62,22 +78,17 @@ public class FixMessageHelper {
 		return fixOrder;
 	}
 
-	public static ExecutionReport updateOrder(String execID, String orderID,
-			Order order, char status, OrderCancelRequest request)
-			throws FieldNotFound {
+	public static ExecutionReport canceled(String execID, String orderID,
+			Order order, OrderCancelRequest request) throws FieldNotFound {
 		ExecutionReport fixOrder = new ExecutionReport(new OrderID(orderID),
 				new ExecID(execID), new ExecTransType(ExecTransType.NEW),
-				new ExecType(status), new OrdStatus(status),
-				request.getSymbol(), request.getSide(), new LeavesQty(0),
-				new CumQty(order.getExecutedQuantity()), new AvgPx(
+				new ExecType(OrdStatus.CANCELED), new OrdStatus(
+						OrdStatus.CANCELED), request.getSymbol(),
+				request.getSide(), new LeavesQty(0), new CumQty(
+						order.getExecutedQuantity()), new AvgPx(
 						order.getAvgExecutedPrice()));
 
 		fixOrder.setField(request.getOrderQty());
-
-		if (status == OrdStatus.FILLED || status == OrdStatus.PARTIALLY_FILLED) {
-			fixOrder.setDouble(LastShares.FIELD, 0);
-			fixOrder.setDouble(LastPx.FIELD, 0.0);
-		}
 
 		copy(request, fixOrder);
 

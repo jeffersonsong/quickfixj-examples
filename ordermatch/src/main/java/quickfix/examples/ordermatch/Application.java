@@ -23,6 +23,9 @@ import static quickfix.examples.ordermatch.FixMessageHelper.reject;
 
 import java.util.ArrayList;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import quickfix.DoNotSend;
 import quickfix.FieldNotFound;
 import quickfix.IncorrectDataFormat;
@@ -35,9 +38,7 @@ import quickfix.SessionID;
 import quickfix.SessionNotFound;
 import quickfix.UnsupportedMessageType;
 import quickfix.examples.utility.MessageSender;
-import quickfix.field.ClOrdID;
 import quickfix.field.NoRelatedSym;
-import quickfix.field.OrdStatus;
 import quickfix.field.OrigClOrdID;
 import quickfix.field.Side;
 import quickfix.field.SubscriptionRequestType;
@@ -49,17 +50,20 @@ import quickfix.fix42.NewOrderSingle;
 import quickfix.fix42.OrderCancelRequest;
 
 public class Application extends MessageCracker implements quickfix.Application {
+	private static final Logger log = LoggerFactory
+			.getLogger(Application.class);
+
 	private OrderMatcher orderMatcher = new OrderMatcher();
 	private IdGenerator generator = new IdGenerator();
 	private final MessageSender messageSender;
 
 	public Application() {
 		this(new MessageSender() {
-			public boolean sendToTarget(Message message) throws SessionNotFound {
+			public boolean sendToTarget(Message message) {
 				try {
 					return Session.sendToTarget(message);
 				} catch (SessionNotFound e) {
-					e.printStackTrace();
+					log.error("Failed to send: " + message, e);
 					return false;
 				}
 			}
@@ -86,35 +90,21 @@ public class Application extends MessageCracker implements quickfix.Application 
 		char timeInForce = TimeInForce.DAY;
 		if (message.isSetField(TimeInForce.FIELD)) {
 			timeInForce = message.getChar(TimeInForce.FIELD);
+			if (timeInForce != TimeInForce.DAY) {
+				rejectOrder(message, "Unsupported TIF, use Day");
+				return;
+			}
 		}
 
 		try {
-			if (timeInForce != TimeInForce.DAY) {
-				throw new RuntimeException("Unsupported TIF, use Day");
-			}
-
 			Order order = new Order(generator.genOrderID(), message);
-
 			processOrder(order);
 		} catch (Exception e) {
 			rejectOrder(message, e.getMessage());
 		}
 	}
-
-	private void rejectOrder(NewOrderSingle request, String message)
-			throws FieldNotFound {
-		String clOrdId = request.getString(ClOrdID.FIELD);
-		ExecutionReport fixOrder = reject(generator.genExecutionID(),
-				clOrdId, request, message);
-
-		try {
-			messageSender.sendToTarget(fixOrder);
-		} catch (SessionNotFound e) {
-			e.printStackTrace();
-		}
-	}
-
-	private void processOrder(Order order) {
+	
+	private void processOrder(Order order) throws FieldNotFound {
 		if (orderMatcher.insert(order)) {
 			acceptOrder(order);
 
@@ -129,44 +119,31 @@ public class Application extends MessageCracker implements quickfix.Application 
 			rejectOrder(order);
 		}
 	}
-
-	private void rejectOrder(Order order) {
-		updateOrder(order, OrdStatus.REJECTED, (NewOrderSingle)order.getMessage());
-	}
-
-	private void acceptOrder(Order order) {
-		updateOrder(order, OrdStatus.NEW, (NewOrderSingle)order.getMessage());
-	}
-
-	private void cancelOrder(Order order, OrderCancelRequest message) {
-		updateOrder(order, OrdStatus.CANCELED, message);
-	}
-
-	private void updateOrder(Order order, char status, NewOrderSingle request) {
-		try {
-			ExecutionReport fixOrder = FixMessageHelper.updateOrder(
-					generator.genExecutionID(), order.getOrderID(), order,
-					status, request);
-			messageSender.sendToTarget(fixOrder);
-		} catch (SessionNotFound e) {
-		} catch (FieldNotFound e) {
-		}
-	}
 	
-	private void updateOrder(Order order, char status, OrderCancelRequest request) {
-		try {
-			ExecutionReport fixOrder = FixMessageHelper.updateOrder(
-					generator.genExecutionID(), order.getOrderID(), order,
-					status, request);
-			messageSender.sendToTarget(fixOrder);
-		} catch (SessionNotFound e) {
-		} catch (FieldNotFound e) {
-		}
+	private void rejectOrder(NewOrderSingle request, String message)
+			throws FieldNotFound {
+		ExecutionReport execRpt = reject(generator.genExecutionID(),
+				generator.genOrderID(), request, message);
+
+		send(execRpt);
 	}
 
-	private void fillOrder(Order order) {
-		updateOrder(order, order.isFilled() ? OrdStatus.FILLED
-				: OrdStatus.PARTIALLY_FILLED, (NewOrderSingle)order.getMessage());
+	private void rejectOrder(Order order) throws FieldNotFound {
+		Message execRpt = FixMessageHelper.reject(generator.genExecutionID(),
+				order, (NewOrderSingle) order.getMessage());
+		send(execRpt);
+	}
+
+	private void acceptOrder(Order order) throws FieldNotFound {
+		Message execRpt = FixMessageHelper.ack(generator.genExecutionID(),
+				order, (NewOrderSingle) order.getMessage());
+		send(execRpt);
+	}
+
+	private void fillOrder(Order order) throws FieldNotFound {
+		Message execRpt = FixMessageHelper.fill(generator.genExecutionID(),
+				order, (NewOrderSingle) order.getMessage());
+		send(execRpt);
 	}
 
 	public void onMessage(OrderCancelRequest message, SessionID sessionID)
@@ -178,6 +155,13 @@ public class Application extends MessageCracker implements quickfix.Application 
 		order.cancel();
 		cancelOrder(order, message);
 		orderMatcher.erase(order);
+	}
+
+	private void cancelOrder(Order order, OrderCancelRequest message)
+			throws FieldNotFound {
+		ExecutionReport execRpt = FixMessageHelper.canceled(
+				generator.genExecutionID(), order.getOrderID(), order, message);
+		send(execRpt);
 	}
 
 	public void onMessage(MarketDataRequest message, SessionID sessionID)
@@ -221,5 +205,9 @@ public class Application extends MessageCracker implements quickfix.Application 
 
 	public OrderMatcher orderMatcher() {
 		return orderMatcher;
+	}
+
+	private void send(Message message) {
+		messageSender.sendToTarget(message);
 	}
 }

@@ -13,9 +13,6 @@ import quickfix.InvalidMessage;
 import quickfix.Message;
 import quickfix.examples.ordermatch.Application;
 import quickfix.examples.utility.MockMessageSender;
-import quickfix.field.MsgType;
-import quickfix.fix42.NewOrderSingle;
-import quickfix.fix42.OrderCancelRequest;
 import cucumber.api.DataTable;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
@@ -37,12 +34,7 @@ public class MarketSteps {
 			DataTable messageTable) throws Exception {
 		List<Message> messages = convertToMessages(messageTable);
 		for (Message message : messages) {
-			String msgType = message.getHeader().getString(MsgType.FIELD);
-			if ("D".equals(msgType)) {
-				application.onMessage((NewOrderSingle) message, null);
-			} else if ("F".equals(msgType)) {
-				application.onMessage((OrderCancelRequest) message, null);
-			}
+			application.fromApp(message, null);
 			log.info(message.toString());
 		}
 	}

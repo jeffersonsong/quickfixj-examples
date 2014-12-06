@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import quickfix.Message;
-import quickfix.SessionNotFound;
 
 public class MockMessageSender implements MessageSender {
 	private List<Message> messages = new ArrayList<Message>();
@@ -15,7 +14,7 @@ public class MockMessageSender implements MessageSender {
 		return result;
 	}
 
-	public boolean sendToTarget(Message message) throws SessionNotFound {
+	public boolean sendToTarget(Message message) {
 		messages.add(message);
 		return true;
 	}
