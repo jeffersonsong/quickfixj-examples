@@ -31,13 +31,11 @@ public class FIX44ExecutionReportBuilder implements ExecutionReportBuilder {
 	}
 
 	public Message fill(Message message, String orderID, String execID,
-			double cumQty, double avgPx, double lastShares, double lastPx)
-			throws FieldNotFound {
+			char ordStatus, double cumQty, double avgPx, double lastShares,
+			double lastPx) throws FieldNotFound {
 		NewOrderSingle order = (NewOrderSingle) message;
 		OrderQty orderQty = order.getOrderQty();
-		char ordStatus = cumQty < orderQty.getValue() ? OrdStatus.PARTIALLY_FILLED
-				: OrdStatus.FILLED;
-		char execType = ordStatus == OrdStatus.PARTIALLY_FILLED ? ExecType.PARTIAL_FILL
+		char execType = cumQty < orderQty.getValue() ? ExecType.PARTIAL_FILL
 				: ExecType.FILL;
 
 		ExecutionReport executionReport = new ExecutionReport(new OrderID(

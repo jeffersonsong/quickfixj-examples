@@ -45,13 +45,10 @@ import quickfix.SessionNotFound;
 import quickfix.SessionSettings;
 import quickfix.UnsupportedMessageType;
 import quickfix.examples.fix.builder.execution.ExecutionReportBuilder;
-import quickfix.examples.fix.builder.execution.FIX40ExecutionReportBuilder;
-import quickfix.examples.fix.builder.execution.FIX41ExecutionReportBuilder;
-import quickfix.examples.fix.builder.execution.FIX42ExecutionReportBuilder;
-import quickfix.examples.fix.builder.execution.FIX43ExecutionReportBuilder;
-import quickfix.examples.fix.builder.execution.FIX44ExecutionReportBuilder;
-import quickfix.examples.fix.builder.execution.FIX50ExecutionReportBuilder;
+import quickfix.examples.fix.builder.execution.ExecutionReportBuilderFactory;
 import quickfix.field.ApplVerID;
+import quickfix.field.BeginString;
+import quickfix.field.OrdStatus;
 import quickfix.field.OrdType;
 import quickfix.field.OrderQty;
 import quickfix.field.Price;
@@ -68,12 +65,7 @@ public class Application extends quickfix.MessageCracker implements
 	private final boolean alwaysFillLimitOrders;
 	private final HashSet<String> validOrderTypes = new HashSet<String>();
 	private MarketDataProvider marketDataProvider;
-	private ExecutionReportBuilder fix40ExecutionReportBuilder = new FIX40ExecutionReportBuilder();
-	private ExecutionReportBuilder fix41ExecutionReportBuilder = new FIX41ExecutionReportBuilder();
-	private ExecutionReportBuilder fix42ExecutionReportBuilder = new FIX42ExecutionReportBuilder();
-	private ExecutionReportBuilder fix43ExecutionReportBuilder = new FIX43ExecutionReportBuilder();
-	private ExecutionReportBuilder fix44ExecutionReportBuilder = new FIX44ExecutionReportBuilder();
-	private ExecutionReportBuilder fix50ExecutionReportBuilder = new FIX50ExecutionReportBuilder();
+	private ExecutionReportBuilderFactory builderFactory = new ExecutionReportBuilderFactory();
 
 	public Application(SessionSettings settings) throws ConfigError,
 			FieldConvertError {
@@ -153,45 +145,47 @@ public class Application extends quickfix.MessageCracker implements
 	public void onMessage(quickfix.fix40.NewOrderSingle order,
 			SessionID sessionID) throws FieldNotFound, UnsupportedMessageType,
 			IncorrectTagValue {
-		onNewOrder(order, sessionID, fix40ExecutionReportBuilder);
+		onNewOrder(order, sessionID);
 	}
-	
+
 	public void onMessage(quickfix.fix41.NewOrderSingle order,
 			SessionID sessionID) throws FieldNotFound, UnsupportedMessageType,
 			IncorrectTagValue {
-		onNewOrder(order, sessionID, fix41ExecutionReportBuilder);
+		onNewOrder(order, sessionID);
 	}
 
 	public void onMessage(quickfix.fix42.NewOrderSingle order,
 			SessionID sessionID) throws FieldNotFound, UnsupportedMessageType,
 			IncorrectTagValue {
-		onNewOrder(order, sessionID, fix42ExecutionReportBuilder);
+		onNewOrder(order, sessionID);
 	}
 
 	public void onMessage(quickfix.fix43.NewOrderSingle order,
 			SessionID sessionID) throws FieldNotFound, UnsupportedMessageType,
 			IncorrectTagValue {
-		onNewOrder(order, sessionID, fix43ExecutionReportBuilder);
+		onNewOrder(order, sessionID);
 	}
 
 	public void onMessage(quickfix.fix44.NewOrderSingle order,
 			SessionID sessionID) throws FieldNotFound, UnsupportedMessageType,
 			IncorrectTagValue {
-		onNewOrder(order, sessionID, fix44ExecutionReportBuilder);
+		onNewOrder(order, sessionID);
 	}
 
 	public void onMessage(quickfix.fix50.NewOrderSingle order,
 			SessionID sessionID) throws FieldNotFound, UnsupportedMessageType,
 			IncorrectTagValue {
-		onNewOrder(order, sessionID, fix50ExecutionReportBuilder);
+		onNewOrder(order, sessionID);
 	}
 
-	private void onNewOrder(Message order, SessionID sessionID,
-			ExecutionReportBuilder builder)
-			throws FieldNotFound, UnsupportedMessageType, IncorrectTagValue {
+	private void onNewOrder(Message order, SessionID sessionID) throws FieldNotFound,
+			UnsupportedMessageType, IncorrectTagValue {
 		try {
 			validateOrder(order);
-
+			
+			String beginStr = order.getHeader().getString(BeginString.FIELD);
+			ExecutionReportBuilder builder = builderFactory.getExecutionReportBuilder(beginStr);
+			
 			OrderQty orderQty = new OrderQty();
 			order.getField(orderQty);
 			Price price = getPrice(order);
@@ -201,9 +195,10 @@ public class Application extends quickfix.MessageCracker implements
 			sendMessage(sessionID, accept);
 
 			if (isOrderExecutable(order, price)) {
-				Message fill = builder.fill(order, orderID, genExecID(),
-						orderQty.getValue(), price.getValue(),
-						orderQty.getValue(), price.getValue());
+				Message fill = builder
+						.fill(order, orderID, genExecID(), OrdStatus.FILLED,
+								orderQty.getValue(), price.getValue(),
+								orderQty.getValue(), price.getValue());
 
 				sendMessage(sessionID, fill);
 			}

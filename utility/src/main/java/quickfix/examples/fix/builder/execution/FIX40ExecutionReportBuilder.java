@@ -31,12 +31,10 @@ public class FIX40ExecutionReportBuilder implements ExecutionReportBuilder {
 	}
 
 	public Message fill(Message message, String orderID, String execID,
-			double cumQty, double avgPx, double lastShares, double lastPx)
-			throws FieldNotFound {
+			char ordStatus, double cumQty, double avgPx, double lastShares,
+			double lastPx) throws FieldNotFound {
 		NewOrderSingle order = (NewOrderSingle) message;
 		OrderQty orderQty = order.getOrderQty();
-		char ordStatus = cumQty < orderQty.getValue() ? OrdStatus.PARTIALLY_FILLED
-				: OrdStatus.FILLED;
 		ExecutionReport fill = new ExecutionReport(new OrderID(orderID),
 				new ExecID(execID), new ExecTransType(ExecTransType.NEW),
 				new OrdStatus(ordStatus), order.getSymbol(), order.getSide(),

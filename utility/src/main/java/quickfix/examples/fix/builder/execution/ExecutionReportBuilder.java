@@ -8,6 +8,6 @@ public interface ExecutionReportBuilder {
 			throws FieldNotFound;
 
 	Message fill(Message newOrderSingle, String orderID, String execID,
-			double cumQty, double avgPx, double lastShares, double lastPx)
+			char ordStatus, double cumQty, double avgPx, double lastShares, double lastPx)
 			throws FieldNotFound;
 }
