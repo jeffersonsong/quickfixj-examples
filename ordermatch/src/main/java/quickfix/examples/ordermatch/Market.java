@@ -103,9 +103,9 @@ public class Market {
 
     public void erase(Order order) {
         if (order.getSide() == Side.BUY) {
-            bidOrders.remove(find(bidOrders, order.getClientOrderId()));
+            bidOrders.remove(find(bidOrders, order.getOrderID()));
         } else {
-            askOrders.remove(find(askOrders, order.getClientOrderId()));
+            askOrders.remove(find(askOrders, order.getOrderID()));
         }
     }
 
@@ -119,10 +119,10 @@ public class Market {
         return order;
     }
 
-    private Order find(List<Order> orders, String clientOrderId) {
+    private Order find(List<Order> orders, String orderID) {
         for (int i = 0; i < orders.size(); i++) {
             Order o = orders.get(i);
-            if (o.getClientOrderId().equals(clientOrderId)) {
+            if (o.getOrderID().equals(orderID)) {
                 return o;
             }
         }

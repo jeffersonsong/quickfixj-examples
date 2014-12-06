@@ -19,118 +19,131 @@
 
 package quickfix.examples.ordermatch;
 
+import quickfix.FieldNotFound;
+import quickfix.Message;
+import quickfix.field.OrdType;
+import quickfix.field.OrderQty;
+import quickfix.field.Price;
+import quickfix.field.SenderCompID;
 import quickfix.field.Side;
+import quickfix.field.Symbol;
+import quickfix.fix42.NewOrderSingle;
 
 public class Order {
-    private long entryTime;
-    private String clientOrderId;
-    private String symbol;
-    private String owner;
-    private String target;
-    private char side;
-    private char type;
-    private double price;
-    private long quantity;
-    private long openQuantity;
-    private long executedQuantity;
-    private double avgExecutedPrice;
-    private double lastExecutedPrice;
-    private long lastExecutedQuantity;
+	private long entryTime;
+	private String orderID;
+	private String symbol;
+	private String owner;
+	private char side;
+	private char type;
+	private double price;
+	private long quantity;
+	private long openQuantity;
+	private long executedQuantity;
+	private double avgExecutedPrice;
+	private double lastExecutedPrice;
+	private long lastExecutedQuantity;
+	private Message message;
 
-    public Order(String clientId, String symbol, String owner, String target, char side, char type,
-            double price, long quantity) {
-        super();
-        this.clientOrderId = clientId;
-        this.symbol = symbol;
-        this.owner = owner;
-        this.target = target;
-        this.side = side;
-        this.type = type;
-        this.price = price;
-        this.quantity = quantity;
-        openQuantity = quantity;
-        entryTime = System.currentTimeMillis();
-    }
+	public Order(String orderID, NewOrderSingle message) throws FieldNotFound {
+		super();
 
-    public double getAvgExecutedPrice() {
-        return avgExecutedPrice;
-    }
+		this.orderID = orderID;
+		this.message = message;
 
-    public String getClientOrderId() {
-        return clientOrderId;
-    }
+		this.symbol = message.getString(Symbol.FIELD);
+		this.owner = message.getHeader().getString(SenderCompID.FIELD);
+		this.side = message.getChar(Side.FIELD);
+		this.type = message.getChar(OrdType.FIELD);
+		this.price = 0;
+		if (this.type == OrdType.LIMIT) {
+			this.price = message.getDouble(Price.FIELD);
+		}
+		this.quantity = (int) message.getDouble(OrderQty.FIELD);
+		this.openQuantity = quantity;
+		this.entryTime = System.currentTimeMillis();
+	}
 
-    public long getExecutedQuantity() {
-        return executedQuantity;
-    }
+	public double getAvgExecutedPrice() {
+		return avgExecutedPrice;
+	}
 
-    public long getLastExecutedQuantity() {
-        return lastExecutedQuantity;
-    }
+	public String getOrderID() {
+		return orderID;
+	}
 
-    public long getOpenQuantity() {
-        return openQuantity;
-    }
+	public long getExecutedQuantity() {
+		return executedQuantity;
+	}
 
-    public String getOwner() {
-        return owner;
-    }
+	public long getLastExecutedQuantity() {
+		return lastExecutedQuantity;
+	}
 
-    public double getPrice() {
-        return price;
-    }
+	public long getOpenQuantity() {
+		return openQuantity;
+	}
 
-    public long getQuantity() {
-        return quantity;
-    }
+	public String getOwner() {
+		return owner;
+	}
 
-    public char getSide() {
-        return side;
-    }
+	public double getPrice() {
+		return price;
+	}
 
-    public String getSymbol() {
-        return symbol;
-    }
+	public long getQuantity() {
+		return quantity;
+	}
 
-    public String getTarget() {
-        return target;
-    }
+	public char getSide() {
+		return side;
+	}
 
-    public char getType() {
-        return type;
-    }
+	public String getSymbol() {
+		return symbol;
+	}
 
-    public boolean isFilled() {
-        return quantity == executedQuantity;
-    }
+	public char getType() {
+		return type;
+	}
 
-    public void cancel() {
-        openQuantity = 0;
-    }
+	public boolean isFilled() {
+		return quantity == executedQuantity;
+	}
 
-    public boolean isClosed() {
-        return openQuantity == 0;
-    }
+	public void cancel() {
+		openQuantity = 0;
+	}
 
-    public void execute(double price, long quantity) {
-        avgExecutedPrice = ((quantity * price) + (avgExecutedPrice * executedQuantity))
-                / (quantity + executedQuantity);
+	public boolean isClosed() {
+		return openQuantity == 0;
+	}
 
-        openQuantity -= quantity;
-        executedQuantity += quantity;
-        lastExecutedPrice = price;
-        lastExecutedQuantity = quantity;
-    }
-    
-    public String toString() {
-        return (side == Side.BUY ? "BUY" : "SELL")+" "+quantity+"@$"+price+" ("+openQuantity+")";
-    }
-    
-    public long getEntryTime() {
-        return entryTime;
-    }
-    
-    public double getLastExecutedPrice() {
-        return lastExecutedPrice;
-    }
+	public void execute(double price, long quantity) {
+		avgExecutedPrice = ((quantity * price) + (avgExecutedPrice * executedQuantity))
+				/ (quantity + executedQuantity);
+
+		openQuantity -= quantity;
+		executedQuantity += quantity;
+		lastExecutedPrice = price;
+		lastExecutedQuantity = quantity;
+	}
+
+	public Message getMessage() {
+		return message;
+	}
+
+	public String toString() {
+		return (side == Side.BUY ? "BUY" : "SELL") + " " + quantity + "@$"
+				+ price + " (" + openQuantity + ")";
+	}
+
+	public long getEntryTime() {
+		return entryTime;
+	}
+
+	public double getLastExecutedPrice() {
+		return lastExecutedPrice;
+	}
 }

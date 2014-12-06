@@ -19,6 +19,8 @@
 
 package quickfix.examples.ordermatch;
 
+import static quickfix.examples.ordermatch.FixMessageHelper.reject;
+
 import java.util.ArrayList;
 
 import quickfix.DoNotSend;
@@ -33,28 +35,13 @@ import quickfix.SessionID;
 import quickfix.SessionNotFound;
 import quickfix.UnsupportedMessageType;
 import quickfix.examples.utility.MessageSender;
-import quickfix.field.AvgPx;
 import quickfix.field.ClOrdID;
-import quickfix.field.CumQty;
-import quickfix.field.ExecID;
-import quickfix.field.ExecTransType;
-import quickfix.field.ExecType;
-import quickfix.field.LastPx;
-import quickfix.field.LastShares;
-import quickfix.field.LeavesQty;
 import quickfix.field.NoRelatedSym;
 import quickfix.field.OrdStatus;
-import quickfix.field.OrdType;
-import quickfix.field.OrderID;
-import quickfix.field.OrderQty;
 import quickfix.field.OrigClOrdID;
-import quickfix.field.Price;
-import quickfix.field.SenderCompID;
 import quickfix.field.Side;
 import quickfix.field.SubscriptionRequestType;
 import quickfix.field.Symbol;
-import quickfix.field.TargetCompID;
-import quickfix.field.Text;
 import quickfix.field.TimeInForce;
 import quickfix.fix42.ExecutionReport;
 import quickfix.fix42.MarketDataRequest;
@@ -96,19 +83,6 @@ public class Application extends MessageCracker implements quickfix.Application 
 
 	public void onMessage(NewOrderSingle message, SessionID sessionID)
 			throws FieldNotFound, UnsupportedMessageType, IncorrectTagValue {
-		String senderCompId = message.getHeader().getString(SenderCompID.FIELD);
-		String targetCompId = message.getHeader().getString(TargetCompID.FIELD);
-		String clOrdId = message.getString(ClOrdID.FIELD);
-		String symbol = message.getString(Symbol.FIELD);
-		char side = message.getChar(Side.FIELD);
-		char ordType = message.getChar(OrdType.FIELD);
-
-		double price = 0;
-		if (ordType == OrdType.LIMIT) {
-			price = message.getDouble(Price.FIELD);
-		}
-
-		double qty = message.getDouble(OrderQty.FIELD);
 		char timeInForce = TimeInForce.DAY;
 		if (message.isSetField(TimeInForce.FIELD)) {
 			timeInForce = message.getChar(TimeInForce.FIELD);
@@ -119,36 +93,25 @@ public class Application extends MessageCracker implements quickfix.Application 
 				throw new RuntimeException("Unsupported TIF, use Day");
 			}
 
-			Order order = new Order(clOrdId, symbol, senderCompId,
-					targetCompId, side, ordType, price, (int) qty);
+			Order order = new Order(generator.genOrderID(), message);
 
 			processOrder(order);
 		} catch (Exception e) {
-			rejectOrder(senderCompId, targetCompId, clOrdId, symbol, side,
-					e.getMessage());
+			rejectOrder(message, e.getMessage());
 		}
 	}
 
-	private void rejectOrder(String senderCompId, String targetCompId,
-			String clOrdId, String symbol, char side, String message) {
-
-		ExecutionReport fixOrder = new ExecutionReport(new OrderID(clOrdId),
-				new ExecID(generator.genExecutionID()), new ExecTransType(
-						ExecTransType.NEW), new ExecType(ExecType.REJECTED),
-				new OrdStatus(ExecType.REJECTED), new Symbol(symbol), new Side(
-						side), new LeavesQty(0), new CumQty(0), new AvgPx(0));
-
-		fixOrder.setString(ClOrdID.FIELD, clOrdId);
-		fixOrder.setString(Text.FIELD, message);
-		fixOrder.getHeader().setString(SenderCompID.FIELD, senderCompId);
-		fixOrder.getHeader().setString(TargetCompID.FIELD, targetCompId);
+	private void rejectOrder(NewOrderSingle request, String message)
+			throws FieldNotFound {
+		String clOrdId = request.getString(ClOrdID.FIELD);
+		ExecutionReport fixOrder = reject(generator.genExecutionID(),
+				clOrdId, request, message);
 
 		try {
 			messageSender.sendToTarget(fixOrder);
 		} catch (SessionNotFound e) {
 			e.printStackTrace();
 		}
-
 	}
 
 	private void processOrder(Order order) {
@@ -180,33 +143,13 @@ public class Application extends MessageCracker implements quickfix.Application 
 	}
 
 	private void updateOrder(Order order, char status) {
-		String targetCompId = order.getOwner();
-		String senderCompId = order.getTarget();
-
-		ExecutionReport fixOrder = new ExecutionReport(new OrderID(
-				order.getClientOrderId()), new ExecID(
-				generator.genExecutionID()), new ExecTransType(
-				ExecTransType.NEW), new ExecType(status),
-				new OrdStatus(status), new Symbol(order.getSymbol()), new Side(
-						order.getSide()),
-				new LeavesQty(order.getOpenQuantity()), new CumQty(
-						order.getExecutedQuantity()), new AvgPx(
-						order.getAvgExecutedPrice()));
-
-		fixOrder.setString(ClOrdID.FIELD, order.getClientOrderId());
-		fixOrder.setDouble(OrderQty.FIELD, order.getQuantity());
-
-		if (status == OrdStatus.FILLED || status == OrdStatus.PARTIALLY_FILLED) {
-			fixOrder.setDouble(LastShares.FIELD,
-					order.getLastExecutedQuantity());
-			fixOrder.setDouble(LastPx.FIELD, order.getPrice());
-		}
-		fixOrder.getHeader().setString(SenderCompID.FIELD, senderCompId);
-		fixOrder.getHeader().setString(TargetCompID.FIELD, targetCompId);
-
 		try {
+			ExecutionReport fixOrder = FixMessageHelper.updateOrder(
+					generator.genExecutionID(), order.getOrderID(), order,
+					status);
 			messageSender.sendToTarget(fixOrder);
 		} catch (SessionNotFound e) {
+		} catch (FieldNotFound e) {
 		}
 	}
 
