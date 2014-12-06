@@ -1,6 +1,7 @@
 package quickfix.examples.fix.builder.execution;
 
 import quickfix.FieldNotFound;
+import quickfix.Message;
 import quickfix.field.AvgPx;
 import quickfix.field.CumQty;
 import quickfix.field.ExecID;
@@ -14,11 +15,11 @@ import quickfix.field.OrderQty;
 import quickfix.fix44.ExecutionReport;
 import quickfix.fix44.NewOrderSingle;
 
-public class FIX44ExecutionReportBuilder implements
-		ExecutionReportBuilder<ExecutionReport, NewOrderSingle> {
+public class FIX44ExecutionReportBuilder implements ExecutionReportBuilder {
 
-	public ExecutionReport ack(NewOrderSingle order, String orderID,
-			String execID) throws FieldNotFound {
+	public Message ack(Message message, String orderID, String execID)
+			throws FieldNotFound {
+		NewOrderSingle order = (NewOrderSingle) message;
 		ExecutionReport accept = new ExecutionReport(new OrderID(orderID),
 				new ExecID(execID), new ExecType(ExecType.NEW), new OrdStatus(
 						OrdStatus.NEW), order.getSide(), new LeavesQty(order
@@ -29,9 +30,10 @@ public class FIX44ExecutionReportBuilder implements
 		return accept;
 	}
 
-	public ExecutionReport fill(NewOrderSingle order, String orderID,
-			String execID, double cumQty, double avgPx, double lastShares,
-			double lastPx) throws FieldNotFound {
+	public Message fill(Message message, String orderID, String execID,
+			double cumQty, double avgPx, double lastShares, double lastPx)
+			throws FieldNotFound {
+		NewOrderSingle order = (NewOrderSingle) message;
 		OrderQty orderQty = order.getOrderQty();
 		char ordStatus = cumQty < orderQty.getValue() ? OrdStatus.PARTIALLY_FILLED
 				: OrdStatus.FILLED;
