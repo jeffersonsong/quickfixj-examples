@@ -26,6 +26,7 @@ import java.awt.event.*;
 
 import quickfix.examples.banzai.*;
 import quickfix.examples.banzai.model.Order;
+import quickfix.examples.banzai.model.OrderType;
 
 public class CancelReplacePanel extends JPanel {
     private JLabel quantityLabel = new JLabel("Quantity");
@@ -125,8 +126,12 @@ public class CancelReplacePanel extends JPanel {
             Order newOrder = (Order)order.clone();
             newOrder.setQuantity
             (Integer.parseInt(quantityTextField.getText()));
-            newOrder.setLimit
-            (new Double(limitPriceTextField.getText()));
+            if (limitPriceTextField.getText() == null || limitPriceTextField.getText().trim().length() == 0) {
+            	newOrder.setType(OrderType.MARKET);
+            } else {
+            	newOrder.setType(OrderType.LIMIT);
+	            newOrder.setLimit(new Double(limitPriceTextField.getText()));
+            }
             newOrder.setRejected(false);
             newOrder.setCanceled(false);
             newOrder.setOpen(0);

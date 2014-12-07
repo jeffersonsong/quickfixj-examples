@@ -1,6 +1,6 @@
 package quickfix.examples.banzai.fix;
 
-import static quickfix.examples.banzai.model.TypeMapping.tifToFIXTif;
+import static quickfix.examples.banzai.model.TypeMapping.*;
 import quickfix.FieldNotFound;
 import quickfix.Message;
 import quickfix.MessageFactory;
@@ -11,6 +11,7 @@ import quickfix.field.BeginString;
 import quickfix.field.LocateReqd;
 import quickfix.field.MsgSeqNum;
 import quickfix.field.MsgType;
+import quickfix.field.OrdType;
 import quickfix.field.OrderQty;
 import quickfix.field.Price;
 import quickfix.field.RefMsgType;
@@ -97,9 +98,9 @@ public abstract class AbstractFixMessageBuilder implements FixMessageBuilder {
 
 	private Message populateCancelReplace(Order order, Order newOrder,
 			quickfix.Message message) {
-		if (order.getQuantity() != newOrder.getQuantity())
-			message.setField(new OrderQty(newOrder.getQuantity()));
-		if (!order.getLimit().equals(newOrder.getLimit()))
+		message.setField(new OrderQty(newOrder.getQuantity()));
+		message.setField(typeToFIXType(newOrder.getType()));
+		if (newOrder.getLimit() != null)
 			message.setField(new Price(newOrder.getLimit().doubleValue()));
 		return message;
 	}

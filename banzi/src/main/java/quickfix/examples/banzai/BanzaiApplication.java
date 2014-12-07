@@ -198,6 +198,16 @@ public class BanzaiApplication implements Application {
 			if (order.isNew()) {
 				order.setNew(false);
 			}
+		} else if (ordStatus.valueEquals(OrdStatus.REPLACED)) {
+			order.setQuantity((int)message.getDouble(OrderQty.FIELD));
+			order.setOpen((int)message.getDouble(LeavesQty.FIELD));
+			OrdType ordType = new OrdType();
+			message.getField(ordType);
+			order.setType(FIXTypeToType(ordType));
+			if (message.isSetField(Price.FIELD)) {
+				order.setLimit(message.getDouble(Price.FIELD));
+			}
+			
 		}
 
 		try {

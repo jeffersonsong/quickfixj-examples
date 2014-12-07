@@ -5,10 +5,12 @@ import static quickfix.examples.banzai.model.TypeMapping.typeToFIXType;
 import quickfix.Message;
 import quickfix.MessageFactory;
 import quickfix.examples.banzai.model.Order;
+import quickfix.examples.banzai.model.OrderType;
 import quickfix.field.ClOrdID;
 import quickfix.field.HandlInst;
 import quickfix.field.OrderQty;
 import quickfix.field.OrigClOrdID;
+import quickfix.field.Price;
 import quickfix.field.Symbol;
 import quickfix.field.TransactTime;
 import quickfix.fix42.NewOrderSingle;
@@ -36,8 +38,7 @@ public class Fix42MessageBuilder extends AbstractFixMessageBuilder {
 				new OrigClOrdID(order.getID()), new ClOrdID(newOrder.getID()),
 				new HandlInst('1'), new Symbol(order.getSymbol()),
 				sideToFIXSide(order.getSide()), new TransactTime(),
-				typeToFIXType(order.getType()));
-
+				typeToFIXType(newOrder.getType()));
 		return message;
 	}
 

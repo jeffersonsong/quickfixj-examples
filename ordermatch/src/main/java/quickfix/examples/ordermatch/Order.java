@@ -129,7 +129,7 @@ public class Order {
 			throw new Exception("can't reduce quantity to be less than or equal to executed qty.");
 		}
 		long diff = newQuantity - this.quantity;
-		this.openQuantity -= diff;
+		this.openQuantity += diff;
 		this.quantity = newQuantity;
 		this.type = newType;
 		this.price = newPrice;
