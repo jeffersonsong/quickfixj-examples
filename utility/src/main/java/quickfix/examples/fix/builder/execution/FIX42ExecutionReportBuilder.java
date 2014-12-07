@@ -22,7 +22,7 @@ import quickfix.fix42.OrderCancelRequest;
 
 public class FIX42ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 
-	public Message ack(Message message, String orderID, String execID)
+	public Message orderAcked(Message message, String orderID, String execID)
 			throws FieldNotFound {
 		NewOrderSingle order = (NewOrderSingle) message;
 		ExecutionReport accept = new ExecutionReport(new OrderID(orderID),
@@ -37,7 +37,7 @@ public class FIX42ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 		return accept;
 	}
 
-	public Message reject(Message message, String orderID, String execID,
+	public Message orderRejected(Message message, String orderID, String execID,
 			String text) throws FieldNotFound {
 		NewOrderSingle request = (NewOrderSingle) message;
 		ExecutionReport fixOrder = new ExecutionReport(new OrderID(orderID),
@@ -52,7 +52,7 @@ public class FIX42ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 		return fixOrder;
 	}
 
-	public Message fill(Message message, String orderID, String execID,
+	public Message fillOrder(Message message, String orderID, String execID,
 			char ordStatus, double cumQty, double avgPx, double lastShares,
 			double lastPx) throws FieldNotFound {
 		NewOrderSingle order = (NewOrderSingle) message;
@@ -75,7 +75,7 @@ public class FIX42ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 		return executionReport;
 	}
 
-	public Message canceled(Message message, String orderID, String execID,
+	public Message orderCanceled(Message message, String orderID, String execID,
 			double cumQty, double avgPx) throws FieldNotFound {
 		OrderCancelRequest request = (OrderCancelRequest) message;
 		ExecutionReport fixOrder = new ExecutionReport(new OrderID(orderID),
@@ -93,7 +93,7 @@ public class FIX42ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 	}
 
 	@Override
-	public Message replaced(Message message, String orderID, String execID,
+	public Message orderReplaced(Message message, String orderID, String execID,
 			double cumQty, double avgPx) throws FieldNotFound {
 		OrderCancelReplaceRequest request = (OrderCancelReplaceRequest) message;
 		ExecutionReport fixOrder = new ExecutionReport(new OrderID(orderID),

@@ -37,6 +37,7 @@ import quickfix.SessionNotFound;
 import quickfix.UnsupportedMessageType;
 import quickfix.examples.fix.builder.execution.ExecutionReportBuilder;
 import quickfix.examples.fix.builder.execution.FIX42ExecutionReportBuilder;
+import quickfix.examples.utility.IdGenerator;
 import quickfix.field.NoRelatedSym;
 import quickfix.field.OrdStatus;
 import quickfix.field.OrdType;
@@ -124,29 +125,29 @@ public class Application extends MessageCracker implements quickfix.Application 
 
 	private void rejectOrder(Message request, String message)
 			throws FieldNotFound {
-		Message execRpt = fix42Builder.reject(request,
-				generator.genExecutionID(), generator.genOrderID(), message);
+		Message execRpt = fix42Builder.orderRejected(request,
+				generator.genExecID(), generator.genOrderID(), message);
 
 		send(execRpt);
 	}
 
 	private void rejectOrder(Order order) throws FieldNotFound {
-		Message execRpt = fix42Builder.reject(order.getMessage(),
-				generator.genExecutionID(), generator.genOrderID(), "");
+		Message execRpt = fix42Builder.orderRejected(order.getMessage(),
+				generator.genExecID(), generator.genOrderID(), "");
 		send(execRpt);
 	}
 
 	private void acceptOrder(Order order) throws FieldNotFound {
-		Message execRpt = fix42Builder.ack(order.getMessage(),
-				order.getOrderID(), generator.genExecutionID());
+		Message execRpt = fix42Builder.orderAcked(order.getMessage(),
+				order.getOrderID(), generator.genExecID());
 		send(execRpt);
 	}
 
 	private void fillOrder(Order order) throws FieldNotFound {
 		char ordStatus = order.getExecutedQuantity() == order.getQuantity() ? OrdStatus.FILLED
 				: OrdStatus.PARTIALLY_FILLED;
-		Message execRpt = fix42Builder.fill(order.getMessage(),
-				order.getOrderID(), generator.genExecutionID(), ordStatus,
+		Message execRpt = fix42Builder.fillOrder(order.getMessage(),
+				order.getOrderID(), generator.genExecID(), ordStatus,
 				order.getExecutedQuantity(), order.getAvgExecutedPrice(),
 				order.getLastExecutedQuantity(), order.getLastExecutedPrice());
 		send(execRpt);
@@ -164,8 +165,8 @@ public class Application extends MessageCracker implements quickfix.Application 
 	}
 
 	private void cancelOrder(Order order, Message message) throws FieldNotFound {
-		Message execRpt = fix42Builder.canceled(message, order.getOrderID(),
-				generator.genExecutionID(), order.getExecutedQuantity(),
+		Message execRpt = fix42Builder.orderCanceled(message, order.getOrderID(),
+				generator.genExecID(), order.getExecutedQuantity(),
 				order.getAvgExecutedPrice());
 		send(execRpt);
 	}
@@ -194,8 +195,8 @@ public class Application extends MessageCracker implements quickfix.Application 
 
 	private void replaceOrder(Order order, Message message)
 			throws FieldNotFound {
-		Message execRpt = fix42Builder.replaced(message, order.getOrderID(),
-				generator.genExecutionID(), order.getExecutedQuantity(),
+		Message execRpt = fix42Builder.orderReplaced(message, order.getOrderID(),
+				generator.genExecID(), order.getExecutedQuantity(),
 				order.getAvgExecutedPrice());
 		send(execRpt);
 	}

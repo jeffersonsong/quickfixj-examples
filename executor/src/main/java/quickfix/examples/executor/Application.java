@@ -42,6 +42,7 @@ import quickfix.SessionSettings;
 import quickfix.UnsupportedMessageType;
 import quickfix.examples.fix.builder.execution.ExecutionReportBuilder;
 import quickfix.examples.fix.builder.execution.ExecutionReportBuilderFactory;
+import quickfix.examples.utility.IdGenerator;
 import quickfix.field.BeginString;
 import quickfix.field.OrdStatus;
 import quickfix.field.OrdType;
@@ -63,6 +64,7 @@ public class Application extends quickfix.MessageCracker implements
 	private MarketDataProvider marketDataProvider;
 	private ExecutionReportBuilderFactory builderFactory = new ExecutionReportBuilderFactory();
 	private MessageSender messageSender;
+	private IdGenerator idGenerator = new IdGenerator();
 
 	public Application(SessionSettings settings) throws ConfigError,
 			FieldConvertError {
@@ -210,12 +212,12 @@ public class Application extends quickfix.MessageCracker implements
 			Price price = getPrice(order);
 			String orderID = genOrderID();
 
-			Message accept = builder.ack(order, orderID, genExecID());
+			Message accept = builder.orderAcked(order, orderID, genExecID());
 			this.messageSender.sendMessage(sessionID, accept);
 
 			if (isOrderExecutable(order, price)) {
 				Message fill = builder
-						.fill(order, orderID, genExecID(), OrdStatus.FILLED,
+						.fillOrder(order, orderID, genExecID(), OrdStatus.FILLED,
 								orderQty.getValue(), price.getValue(),
 								orderQty.getValue(), price.getValue());
 
@@ -278,11 +280,11 @@ public class Application extends quickfix.MessageCracker implements
 	}
 
 	public String genOrderID() {
-		return Integer.valueOf(++m_orderID).toString();
+		return idGenerator.genOrderID();
 	}
 
 	public String genExecID() {
-		return Integer.valueOf(++m_execID).toString();
+		return idGenerator.genExecID();
 	}
 
 	/**
@@ -293,7 +295,4 @@ public class Application extends quickfix.MessageCracker implements
 	public void setMarketDataProvider(MarketDataProvider marketDataProvider) {
 		this.marketDataProvider = marketDataProvider;
 	}
-
-	private int m_orderID = 0;
-	private int m_execID = 0;
 }

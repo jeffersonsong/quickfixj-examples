@@ -18,7 +18,7 @@ import quickfix.fix41.NewOrderSingle;
 
 public class FIX41ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 
-	public Message ack(Message message, String orderID, String execID)
+	public Message orderAcked(Message message, String orderID, String execID)
 			throws FieldNotFound {
 		NewOrderSingle order = (NewOrderSingle) message;
 		OrderQty orderQty = order.getOrderQty();
@@ -34,7 +34,7 @@ public class FIX41ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 		return accept;
 	}
 
-	public Message fill(Message message, String orderID, String execID,
+	public Message fillOrder(Message message, String orderID, String execID,
 			char ordStatus, double cumQty, double avgPx, double lastShares,
 			double lastPx) throws FieldNotFound {
 		NewOrderSingle order = (NewOrderSingle) message;
