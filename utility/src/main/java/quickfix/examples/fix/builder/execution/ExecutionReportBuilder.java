@@ -16,4 +16,7 @@ public interface ExecutionReportBuilder {
 	
 	Message canceled(Message cancelRequest, String orderID, String execID, 
 			double cumQty, double avgPx) throws FieldNotFound;
+	
+	Message replaced(Message replaceRequest, String orderID, String execID, 
+			double cumQty, double avgPx) throws FieldNotFound;
 }

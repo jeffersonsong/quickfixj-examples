@@ -37,4 +37,8 @@ public abstract class AbstractExecutioReportBuilder implements
 		throw new UnsupportedOperationException();
 	}
 
+	public Message replaced(Message replaceRequest, String orderID,
+			String execID, double cumQty, double avgPx) throws FieldNotFound {
+		throw new UnsupportedOperationException();
+	}
 }

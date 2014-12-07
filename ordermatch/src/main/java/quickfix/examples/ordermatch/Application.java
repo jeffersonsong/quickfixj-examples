@@ -39,7 +39,10 @@ import quickfix.examples.fix.builder.execution.ExecutionReportBuilder;
 import quickfix.examples.fix.builder.execution.FIX42ExecutionReportBuilder;
 import quickfix.field.NoRelatedSym;
 import quickfix.field.OrdStatus;
+import quickfix.field.OrdType;
+import quickfix.field.OrderQty;
 import quickfix.field.OrigClOrdID;
+import quickfix.field.Price;
 import quickfix.field.Side;
 import quickfix.field.SubscriptionRequestType;
 import quickfix.field.Symbol;
@@ -83,8 +86,9 @@ public class Application extends MessageCracker implements quickfix.Application 
 		crack(message, sessionId);
 	}
 
-	public void onMessage(quickfix.fix42.NewOrderSingle message, SessionID sessionID)
-			throws FieldNotFound, UnsupportedMessageType, IncorrectTagValue {
+	public void onMessage(quickfix.fix42.NewOrderSingle message,
+			SessionID sessionID) throws FieldNotFound, UnsupportedMessageType,
+			IncorrectTagValue {
 		char timeInForce = TimeInForce.DAY;
 		if (message.isSetField(TimeInForce.FIELD)) {
 			timeInForce = message.getChar(TimeInForce.FIELD);
@@ -148,8 +152,8 @@ public class Application extends MessageCracker implements quickfix.Application 
 		send(execRpt);
 	}
 
-	public void onMessage(quickfix.fix42.OrderCancelRequest message, SessionID sessionID)
-			throws FieldNotFound, UnsupportedMessageType, IncorrectTagValue {
+	public void onMessage(quickfix.fix42.OrderCancelRequest message,
+			SessionID sessionID) throws FieldNotFound {
 		String symbol = message.getString(Symbol.FIELD);
 		char side = message.getChar(Side.FIELD);
 		String id = message.getString(OrigClOrdID.FIELD);
@@ -159,9 +163,38 @@ public class Application extends MessageCracker implements quickfix.Application 
 		orderMatcher.erase(order);
 	}
 
-	private void cancelOrder(Order order, Message message)
-			throws FieldNotFound {
+	private void cancelOrder(Order order, Message message) throws FieldNotFound {
 		Message execRpt = fix42Builder.canceled(message, order.getOrderID(),
+				generator.genExecutionID(), order.getExecutedQuantity(),
+				order.getAvgExecutedPrice());
+		send(execRpt);
+	}
+
+	public void onMessage(quickfix.fix42.OrderCancelReplaceRequest message,
+			SessionID sessionID) throws FieldNotFound {
+		String symbol = message.getString(Symbol.FIELD);
+		char side = message.getChar(Side.FIELD);
+		String id = message.getString(OrigClOrdID.FIELD);
+		Order order = orderMatcher.find(symbol, side, id);
+
+		long newQty = (long) message.getDouble(OrderQty.FIELD);
+		char newType = message.getChar(OrdType.FIELD);
+		double newPrice = 0;
+		if (message.isSetField(Price.FIELD)) {
+			newPrice = message.getDouble(Price.FIELD);
+		}
+
+		try {
+			order.replace(newQty, newType, newPrice);
+			replaceOrder(order, message);
+		} catch (Exception ex) {
+			log.error("Failed to process: " + message, ex);
+		}
+	}
+
+	private void replaceOrder(Order order, Message message)
+			throws FieldNotFound {
+		Message execRpt = fix42Builder.replaced(message, order.getOrderID(),
 				generator.genExecutionID(), order.getExecutedQuantity(),
 				order.getAvgExecutedPrice());
 		send(execRpt);

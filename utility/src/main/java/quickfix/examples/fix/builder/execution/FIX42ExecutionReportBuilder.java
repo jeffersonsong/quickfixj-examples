@@ -13,9 +13,11 @@ import quickfix.field.LeavesQty;
 import quickfix.field.OrdStatus;
 import quickfix.field.OrderID;
 import quickfix.field.OrderQty;
+import quickfix.field.Price;
 import quickfix.field.Text;
 import quickfix.fix42.ExecutionReport;
 import quickfix.fix42.NewOrderSingle;
+import quickfix.fix42.OrderCancelReplaceRequest;
 import quickfix.fix42.OrderCancelRequest;
 
 public class FIX42ExecutionReportBuilder extends AbstractExecutioReportBuilder {
@@ -83,7 +85,32 @@ public class FIX42ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 				request.getSide(), new LeavesQty(0), new CumQty(cumQty),
 				new AvgPx(avgPx));
 
+		fixOrder.setField(request.getClOrdID());
+		fixOrder.setField(request.getOrigClOrdID());
 		fixOrder.setField(request.getOrderQty());
+		reverseRoute(message, fixOrder);
+		return fixOrder;
+	}
+
+	@Override
+	public Message replaced(Message message, String orderID, String execID,
+			double cumQty, double avgPx) throws FieldNotFound {
+		OrderCancelReplaceRequest request = (OrderCancelReplaceRequest) message;
+		ExecutionReport fixOrder = new ExecutionReport(new OrderID(orderID),
+				new ExecID(execID), new ExecTransType(ExecTransType.NEW),
+				new ExecType(OrdStatus.REPLACED), new OrdStatus(
+						OrdStatus.REPLACED), request.getSymbol(),
+				request.getSide(), new LeavesQty(request.getOrderQty()
+						.getValue() - cumQty), new CumQty(cumQty), new AvgPx(
+						avgPx));
+
+		fixOrder.setField(request.getClOrdID());
+		fixOrder.setField(request.getOrigClOrdID());
+		fixOrder.setField(request.getOrderQty());
+		fixOrder.setField(request.getOrdType());
+		if (request.isSetField(Price.FIELD)) {
+			fixOrder.setField(request.getPrice());
+		}
 		reverseRoute(message, fixOrder);
 		return fixOrder;
 	}

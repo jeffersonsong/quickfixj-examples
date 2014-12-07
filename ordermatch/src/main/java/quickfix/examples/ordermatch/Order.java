@@ -123,6 +123,17 @@ public class Order {
 	public void cancel() {
 		openQuantity = 0;
 	}
+	
+	public void replace(long newQuantity, char newType, double newPrice) throws Exception {
+		if (newQuantity <= executedQuantity) {
+			throw new Exception("can't reduce quantity to be less than or equal to executed qty.");
+		}
+		long diff = newQuantity - this.quantity;
+		this.openQuantity -= diff;
+		this.quantity = newQuantity;
+		this.type = newType;
+		this.price = newPrice;
+	}
 
 	public boolean isClosed() {
 		return openQuantity == 0;
