@@ -23,7 +23,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class OrderMatcher {
+	private static final Logger log = LoggerFactory.getLogger(OrderMatcher.class);
     private HashMap<String, Market> markets = new HashMap<String, Market>();
 
     private Market getMarket(String symbol) {
@@ -54,7 +58,7 @@ public class OrderMatcher {
     public void display() {
         for (Iterator<String> iter = markets.keySet().iterator(); iter.hasNext();) {
             String symbol = iter.next();
-            System.out.println("MARKET: " + symbol);
+            log.info("MARKET: " + symbol);
             display(symbol);
         }
     }

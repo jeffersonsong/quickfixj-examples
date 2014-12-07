@@ -37,7 +37,6 @@ import quickfix.SessionNotFound;
 import quickfix.UnsupportedMessageType;
 import quickfix.examples.fix.builder.execution.ExecutionReportBuilder;
 import quickfix.examples.fix.builder.execution.FIX42ExecutionReportBuilder;
-import quickfix.examples.utility.MessageSender;
 import quickfix.field.NoRelatedSym;
 import quickfix.field.OrdStatus;
 import quickfix.field.OrigClOrdID;
@@ -46,8 +45,6 @@ import quickfix.field.SubscriptionRequestType;
 import quickfix.field.Symbol;
 import quickfix.field.TimeInForce;
 import quickfix.fix42.MarketDataRequest;
-import quickfix.fix42.NewOrderSingle;
-import quickfix.fix42.OrderCancelRequest;
 
 public class Application extends MessageCracker implements quickfix.Application {
 	private static final Logger log = LoggerFactory
@@ -86,7 +83,7 @@ public class Application extends MessageCracker implements quickfix.Application 
 		crack(message, sessionId);
 	}
 
-	public void onMessage(NewOrderSingle message, SessionID sessionID)
+	public void onMessage(quickfix.fix42.NewOrderSingle message, SessionID sessionID)
 			throws FieldNotFound, UnsupportedMessageType, IncorrectTagValue {
 		char timeInForce = TimeInForce.DAY;
 		if (message.isSetField(TimeInForce.FIELD)) {
@@ -121,7 +118,7 @@ public class Application extends MessageCracker implements quickfix.Application 
 		}
 	}
 
-	private void rejectOrder(NewOrderSingle request, String message)
+	private void rejectOrder(Message request, String message)
 			throws FieldNotFound {
 		Message execRpt = fix42Builder.reject(request,
 				generator.genExecutionID(), generator.genOrderID(), message);
@@ -151,7 +148,7 @@ public class Application extends MessageCracker implements quickfix.Application 
 		send(execRpt);
 	}
 
-	public void onMessage(OrderCancelRequest message, SessionID sessionID)
+	public void onMessage(quickfix.fix42.OrderCancelRequest message, SessionID sessionID)
 			throws FieldNotFound, UnsupportedMessageType, IncorrectTagValue {
 		String symbol = message.getString(Symbol.FIELD);
 		char side = message.getChar(Side.FIELD);
@@ -162,7 +159,7 @@ public class Application extends MessageCracker implements quickfix.Application 
 		orderMatcher.erase(order);
 	}
 
-	private void cancelOrder(Order order, OrderCancelRequest message)
+	private void cancelOrder(Order order, Message message)
 			throws FieldNotFound {
 		Message execRpt = fix42Builder.canceled(message, order.getOrderID(),
 				generator.genExecutionID(), order.getExecutedQuantity(),
@@ -186,7 +183,7 @@ public class Application extends MessageCracker implements quickfix.Application 
 		for (int i = 1; i <= relatedSymbolCount; ++i) {
 			message.getGroup(i, noRelatedSyms);
 			String symbol = noRelatedSyms.getString(Symbol.FIELD);
-			System.err.println("*** market data: " + symbol);
+			log.error("*** market data: " + symbol);
 		}
 	}
 
@@ -194,11 +191,11 @@ public class Application extends MessageCracker implements quickfix.Application 
 	}
 
 	public void onLogon(SessionID sessionId) {
-		System.out.println("Logon - " + sessionId);
+		log.info("Logon - " + sessionId);
 	}
 
 	public void onLogout(SessionID sessionId) {
-		System.out.println("Logout - " + sessionId);
+		log.info("Logout - " + sessionId);
 	}
 
 	public void toAdmin(Message message, SessionID sessionId) {

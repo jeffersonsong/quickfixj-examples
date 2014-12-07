@@ -1,4 +1,4 @@
-package quickfix.examples.utility;
+package quickfix.examples.ordermatch;
 
 import java.util.ArrayList;
 import java.util.List;

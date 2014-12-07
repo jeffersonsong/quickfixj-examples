@@ -1,4 +1,4 @@
-package quickfix.examples.utility;
+package quickfix.examples.ordermatch;
 
 import quickfix.Message;
 
