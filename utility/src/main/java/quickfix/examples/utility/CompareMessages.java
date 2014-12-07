@@ -29,7 +29,7 @@ public class CompareMessages {
 			Tuple2<Integer, String> firstDiff = include(actualMessage,
 					expectedMessage);
 			if (firstDiff != null) {
-				Assert.fail("Message different: " + firstDiff);
+				Assert.fail("Message different: " + firstDiff + ", " + actualMessage);
 			}
 		}
 	}

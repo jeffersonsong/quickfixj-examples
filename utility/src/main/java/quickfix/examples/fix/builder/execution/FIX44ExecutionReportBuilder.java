@@ -27,6 +27,9 @@ public class FIX44ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 
 		accept.set(order.getClOrdID());
 		accept.set(order.getSymbol());
+		accept.setField(order.getOrderQty());
+		
+		reverseRoute(message, accept);
 		return accept;
 	}
 
@@ -49,6 +52,8 @@ public class FIX44ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 		executionReport.set(orderQty);
 		executionReport.set(new LastQty(lastShares));
 		executionReport.set(new LastPx(lastPx));
+		
+		reverseRoute(message, executionReport);
 		return executionReport;
 	}
 

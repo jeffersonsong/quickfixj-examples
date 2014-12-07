@@ -26,9 +26,11 @@ public class FIX41ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 				new ExecID(execID), new ExecTransType(ExecTransType.NEW),
 				new ExecType(ExecType.NEW), new OrdStatus(OrdStatus.NEW),
 				order.getSymbol(), order.getSide(), orderQty,
-				new LastShares(0), new LastPx(0), new LeavesQty(0), new CumQty(
-						0), new AvgPx(0));
+				new LastShares(0), new LastPx(0), new LeavesQty(
+						orderQty.getValue()), new CumQty(0), new AvgPx(0));
 		accept.set(order.getClOrdID());
+
+		reverseRoute(message, accept);
 		return accept;
 	}
 
@@ -49,6 +51,8 @@ public class FIX41ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 				new AvgPx(avgPx));
 
 		executionReport.set(order.getClOrdID());
+
+		reverseRoute(message, executionReport);
 		return executionReport;
 	}
 }

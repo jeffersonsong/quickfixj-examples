@@ -27,6 +27,11 @@ public class FIX50ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 
 		accept.set(order.getClOrdID());
 		accept.set(order.getSymbol());
+		accept.set(new AvgPx(0));
+		
+		accept.setField(order.getOrderQty());
+		
+		reverseRoute(message, accept);
 		return accept;
 	}
 
@@ -49,6 +54,8 @@ public class FIX50ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 		executionReport.set(new LastQty(lastShares));
 		executionReport.set(new LastPx(lastPx));
 		executionReport.set(new AvgPx(avgPx));
+		
+		reverseRoute(message, executionReport);
 		return executionReport;
 	}
 }

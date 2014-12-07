@@ -23,10 +23,11 @@ public class FIX40ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 		ExecutionReport accept = new ExecutionReport(new OrderID(orderID),
 				new ExecID(execID), new ExecTransType(ExecTransType.NEW),
 				new OrdStatus(OrdStatus.NEW), order.getSymbol(),
-				order.getSide(), orderQty, new LastShares(0), new LastPx(0),
-				new CumQty(0), new AvgPx(0));
+				order.getSide(), orderQty, new LastShares(orderQty.getValue()),
+				new LastPx(0), new CumQty(0), new AvgPx(0));
 
 		accept.set(order.getClOrdID());
+		reverseRoute(message, accept);
 		return accept;
 	}
 
@@ -42,6 +43,7 @@ public class FIX40ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 				new CumQty(cumQty), new AvgPx(avgPx));
 
 		fill.set(order.getClOrdID());
+		reverseRoute(message, fill);
 		return fill;
 	}
 }

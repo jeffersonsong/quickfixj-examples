@@ -28,25 +28,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import quickfix.ConfigError;
-import quickfix.DataDictionaryProvider;
 import quickfix.DoNotSend;
 import quickfix.FieldConvertError;
 import quickfix.FieldNotFound;
-import quickfix.FixVersions;
 import quickfix.IncorrectDataFormat;
 import quickfix.IncorrectTagValue;
 import quickfix.LogUtil;
 import quickfix.Message;
-import quickfix.MessageUtils;
 import quickfix.RejectLogon;
 import quickfix.Session;
 import quickfix.SessionID;
-import quickfix.SessionNotFound;
 import quickfix.SessionSettings;
 import quickfix.UnsupportedMessageType;
 import quickfix.examples.fix.builder.execution.ExecutionReportBuilder;
 import quickfix.examples.fix.builder.execution.ExecutionReportBuilderFactory;
-import quickfix.field.ApplVerID;
 import quickfix.field.BeginString;
 import quickfix.field.OrdStatus;
 import quickfix.field.OrdType;
@@ -61,30 +56,54 @@ public class Application extends quickfix.MessageCracker implements
 	private static final String ALWAYS_FILL_LIMIT_KEY = "AlwaysFillLimitOrders";
 	private static final String VALID_ORDER_TYPES_KEY = "ValidOrderTypes";
 
-	private final Logger log = LoggerFactory.getLogger(getClass());
+	private final static Logger log = LoggerFactory
+			.getLogger(Application.class);
 	private final boolean alwaysFillLimitOrders;
 	private final HashSet<String> validOrderTypes = new HashSet<String>();
 	private MarketDataProvider marketDataProvider;
 	private ExecutionReportBuilderFactory builderFactory = new ExecutionReportBuilderFactory();
+	private MessageSender messageSender;
 
 	public Application(SessionSettings settings) throws ConfigError,
 			FieldConvertError {
-		initializeValidOrderTypes(settings);
-		initializeMarketDataProvider(settings);
-
-		if (settings.isSetting(ALWAYS_FILL_LIMIT_KEY)) {
-			alwaysFillLimitOrders = settings.getBool(ALWAYS_FILL_LIMIT_KEY);
-		} else {
-			alwaysFillLimitOrders = false;
-		}
+		this(settings, new DefaultMessageSender());
 	}
 
-	private void initializeMarketDataProvider(SessionSettings settings)
+	public Application(SessionSettings settings, MessageSender messageSender)
 			throws ConfigError, FieldConvertError {
+		String validOrderTypesStr = null;
+		if (settings.isSetting(VALID_ORDER_TYPES_KEY)) {
+			validOrderTypesStr = settings.getString(VALID_ORDER_TYPES_KEY).trim();
+		}
+
+		double defaultMarketPrice = 0.0;
 		if (settings.isSetting(DEFAULT_MARKET_PRICE_KEY)) {
+			defaultMarketPrice = settings.getDouble(DEFAULT_MARKET_PRICE_KEY);
+		}
+
+		if (settings.isSetting(ALWAYS_FILL_LIMIT_KEY)) {
+			this.alwaysFillLimitOrders = settings.getBool(ALWAYS_FILL_LIMIT_KEY);
+		} else {
+			this.alwaysFillLimitOrders = false;
+		}
+		initializeValidOrderTypes(validOrderTypesStr);
+		initializeMarketDataProvider(defaultMarketPrice);
+		this.messageSender = messageSender;
+	}
+
+	public Application(boolean alwaysFillLimitOrders,
+			String validOrderTypesStr, double defaultMarketPrice,
+			MessageSender messageSender) throws ConfigError, FieldConvertError {
+		initializeValidOrderTypes(validOrderTypesStr);
+		initializeMarketDataProvider(defaultMarketPrice);
+		this.alwaysFillLimitOrders = alwaysFillLimitOrders;
+		this.messageSender = messageSender;
+	}
+
+	private void initializeMarketDataProvider(final double defaultMarketPrice)
+			throws ConfigError, FieldConvertError {
+		if (defaultMarketPrice > 0.0) {
 			if (marketDataProvider == null) {
-				final double defaultMarketPrice = settings
-						.getDouble(DEFAULT_MARKET_PRICE_KEY);
 				marketDataProvider = new MarketDataProvider() {
 					public double getAsk(String symbol) {
 						return defaultMarketPrice;
@@ -101,12 +120,11 @@ public class Application extends quickfix.MessageCracker implements
 		}
 	}
 
-	private void initializeValidOrderTypes(SessionSettings settings)
+	private void initializeValidOrderTypes(String validOrderTypesStr)
 			throws ConfigError, FieldConvertError {
-		if (settings.isSetting(VALID_ORDER_TYPES_KEY)) {
-			List<String> orderTypes = Arrays
-					.asList(settings.getString(VALID_ORDER_TYPES_KEY).trim()
-							.split("\\s*,\\s*"));
+		if (validOrderTypesStr != null) {
+			List<String> orderTypes = Arrays.asList(validOrderTypesStr
+					.split("\\s*,\\s*"));
 			validOrderTypes.addAll(orderTypes);
 		} else {
 			validOrderTypes.add(OrdType.LIMIT + "");
@@ -178,21 +196,22 @@ public class Application extends quickfix.MessageCracker implements
 		onNewOrder(order, sessionID);
 	}
 
-	private void onNewOrder(Message order, SessionID sessionID) throws FieldNotFound,
-			UnsupportedMessageType, IncorrectTagValue {
+	private void onNewOrder(Message order, SessionID sessionID)
+			throws FieldNotFound, UnsupportedMessageType, IncorrectTagValue {
 		try {
 			validateOrder(order);
-			
+
 			String beginStr = order.getHeader().getString(BeginString.FIELD);
-			ExecutionReportBuilder builder = builderFactory.getExecutionReportBuilder(beginStr);
-			
+			ExecutionReportBuilder builder = builderFactory
+					.getExecutionReportBuilder(beginStr);
+
 			OrderQty orderQty = new OrderQty();
 			order.getField(orderQty);
 			Price price = getPrice(order);
 			String orderID = genOrderID();
 
 			Message accept = builder.ack(order, orderID, genExecID());
-			sendMessage(sessionID, accept);
+			this.messageSender.sendMessage(sessionID, accept);
 
 			if (isOrderExecutable(order, price)) {
 				Message fill = builder
@@ -200,7 +219,7 @@ public class Application extends quickfix.MessageCracker implements
 								orderQty.getValue(), price.getValue(),
 								orderQty.getValue(), price.getValue());
 
-				sendMessage(sessionID, fill);
+				this.messageSender.sendMessage(sessionID, fill);
 			}
 		} catch (RuntimeException e) {
 			LogUtil.logThrowable(sessionID, e.getMessage(), e);
@@ -243,44 +262,6 @@ public class Application extends quickfix.MessageCracker implements
 			}
 		}
 		return price;
-	}
-
-	private void sendMessage(SessionID sessionID, Message message) {
-		try {
-			Session session = Session.lookupSession(sessionID);
-			if (session == null) {
-				throw new SessionNotFound(sessionID.toString());
-			}
-
-			DataDictionaryProvider dataDictionaryProvider = session
-					.getDataDictionaryProvider();
-			if (dataDictionaryProvider != null) {
-				try {
-					dataDictionaryProvider.getApplicationDataDictionary(
-							getApplVerID(session, message)).validate(message,
-							true);
-				} catch (Exception e) {
-					LogUtil.logThrowable(
-							sessionID,
-							"Outgoing message failed validation: "
-									+ e.getMessage(), e);
-					return;
-				}
-			}
-
-			session.send(message);
-		} catch (SessionNotFound e) {
-			log.error(e.getMessage(), e);
-		}
-	}
-
-	private ApplVerID getApplVerID(Session session, Message message) {
-		String beginString = session.getSessionID().getBeginString();
-		if (FixVersions.BEGINSTRING_FIXT11.equals(beginString)) {
-			return new ApplVerID(ApplVerID.FIX50);
-		} else {
-			return MessageUtils.toApplVerID(beginString);
-		}
 	}
 
 	private void validateOrder(Message order) throws IncorrectTagValue,
