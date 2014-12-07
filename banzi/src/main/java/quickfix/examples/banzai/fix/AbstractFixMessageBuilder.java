@@ -1,6 +1,7 @@
 package quickfix.examples.banzai.fix;
 
-import static quickfix.examples.banzai.model.TypeMapping.*;
+import static quickfix.examples.banzai.model.TypeMapping.tifToFIXTif;
+import static quickfix.examples.banzai.model.TypeMapping.typeToFIXType;
 import quickfix.FieldNotFound;
 import quickfix.Message;
 import quickfix.MessageFactory;
@@ -11,7 +12,6 @@ import quickfix.field.BeginString;
 import quickfix.field.LocateReqd;
 import quickfix.field.MsgSeqNum;
 import quickfix.field.MsgType;
-import quickfix.field.OrdType;
 import quickfix.field.OrderQty;
 import quickfix.field.Price;
 import quickfix.field.RefMsgType;
