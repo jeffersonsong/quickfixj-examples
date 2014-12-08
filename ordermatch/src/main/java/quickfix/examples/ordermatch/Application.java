@@ -35,6 +35,7 @@ import quickfix.examples.utility.CrackedApplicationAdapter;
 import quickfix.examples.utility.DefaultMessageSender;
 import quickfix.examples.utility.IdGenerator;
 import quickfix.examples.utility.MessageSender;
+import quickfix.field.ClOrdID;
 import quickfix.field.NoRelatedSym;
 import quickfix.field.OrdStatus;
 import quickfix.field.OrdType;
@@ -152,8 +153,9 @@ public class Application extends CrackedApplicationAdapter {
 			SessionID sessionID) throws FieldNotFound {
 		String symbol = message.getString(Symbol.FIELD);
 		char side = message.getChar(Side.FIELD);
-		String id = message.getString(OrigClOrdID.FIELD);
-		Order order = orderMatcher.find(symbol, side, id);
+		String clOrdID = message.getString(ClOrdID.FIELD);
+		String origClOrdID = message.getString(OrigClOrdID.FIELD);
+		Order order = orderMatcher.find(symbol, side, origClOrdID);
 
 		long newQty = (long) message.getDouble(OrderQty.FIELD);
 		char newType = message.getChar(OrdType.FIELD);
@@ -164,6 +166,7 @@ public class Application extends CrackedApplicationAdapter {
 
 		try {
 			order.replace(newQty, newType, newPrice);
+			order.setClOrdID(clOrdID);
 			replaceOrder(order, message);
 		} catch (Exception ex) {
 			log.error("Failed to process: " + message, ex);

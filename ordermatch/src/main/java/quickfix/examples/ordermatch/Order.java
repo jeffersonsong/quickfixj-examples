@@ -79,6 +79,10 @@ public class Order {
 	public String getClOrdID() {
 		return this.clOrdID;
 	}
+	
+	public void setClOrdID(String clOrdID) {
+		this.clOrdID = clOrdID;
+	}
 
 	public long getExecutedQuantity() {
 		return executedQuantity;
