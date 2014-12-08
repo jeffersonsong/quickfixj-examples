@@ -17,6 +17,13 @@ public class CompareMessages {
 	private static int[] excludeTags = { 9, 10, 11, 17, 19, 37, 41, 52, 60 };
 
 	public static void compareMessages(List<Message> actualMessages,
+			char delimiter, List<String> expectedMessageStrs)
+			throws InvalidMessage {
+		compareMessages(actualMessages, delimiter,
+				expectedMessageStrs.toArray(new String[0]));
+	}
+
+	public static void compareMessages(List<Message> actualMessages,
 			char delimiter, String... expectedMessageStrs)
 			throws InvalidMessage {
 		assertEquals("Number of message mistach", expectedMessageStrs.length,
@@ -29,7 +36,8 @@ public class CompareMessages {
 			Tuple2<Integer, String> firstDiff = include(actualMessage,
 					expectedMessage);
 			if (firstDiff != null) {
-				Assert.fail("Message different: " + firstDiff + ", " + actualMessage);
+				Assert.fail("Message different: " + firstDiff + ", "
+						+ actualMessage);
 			}
 		}
 	}

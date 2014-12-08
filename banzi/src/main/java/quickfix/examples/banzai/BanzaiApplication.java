@@ -30,6 +30,9 @@ import java.util.Observer;
 
 import javax.swing.SwingUtilities;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import quickfix.ApplicationAdapter;
 import quickfix.DefaultMessageFactory;
 import quickfix.FieldNotFound;
@@ -69,7 +72,8 @@ import quickfix.field.Symbol;
 import quickfix.field.Text;
 
 public class BanzaiApplication extends ApplicationAdapter {
-
+	private static Logger log = LoggerFactory.getLogger(BanzaiApplication.class);
+	
 	private OrderTableModel orderTableModel = null;
 	private ExecutionTableModel executionTableModel = null;
 	private ObservableOrder observableOrder = new ObservableOrder();
@@ -158,7 +162,8 @@ public class BanzaiApplication extends ApplicationAdapter {
 		String beginString = message.getHeader().getString(BeginString.FIELD);
 		FixMessageBuilder builder = getFixMessageBuilder(beginString);
 		Message reply = builder.sessionReject(message, rejectReason);
-		Session.sendToTarget(reply);
+		// Session.sendToTarget(reply);
+		log.error("Reject: {}", reply.toString());
 	}
 
 	private void sendBusinessReject(Message message, int rejectReason,
@@ -167,7 +172,8 @@ public class BanzaiApplication extends ApplicationAdapter {
 		FixMessageBuilder builder = getFixMessageBuilder(beginString);
 		Message reply = builder.businessReject(message, rejectReason,
 				rejectText);
-		Session.sendToTarget(reply);
+		// Session.sendToTarget(reply);
+		log.error("Reject: {}", reply.toString());
 	}
 
 	private void executionReport(Message message, SessionID sessionID)

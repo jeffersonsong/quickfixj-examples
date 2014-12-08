@@ -221,27 +221,28 @@ public class Application extends CrackedApplicationAdapter {
 	}
 
 	private Price getPrice(Message message) throws FieldNotFound {
-		Price price;
 		if (message.getChar(OrdType.FIELD) == OrdType.LIMIT
 				&& alwaysFillLimitOrders) {
-			price = new Price(message.getDouble(Price.FIELD));
+			return new Price(message.getDouble(Price.FIELD));
 		} else {
 			if (marketDataProvider == null) {
 				throw new RuntimeException(
 						"No market data provider specified for market order");
 			}
 			char side = message.getChar(Side.FIELD);
-			if (side == Side.BUY) {
-				price = new Price(marketDataProvider.getAsk(message
-						.getString(Symbol.FIELD)));
-			} else if (side == Side.SELL || side == Side.SELL_SHORT) {
-				price = new Price(marketDataProvider.getBid(message
-						.getString(Symbol.FIELD)));
-			} else {
-				throw new RuntimeException("Invalid order side: " + side);
-			}
+			String symbol = message.getString(Symbol.FIELD);
+			return quotePrice(side, symbol);
 		}
-		return price;
+	}
+
+	private Price quotePrice(char side, String symbol) throws FieldNotFound {
+		if (side == Side.BUY) {
+			return new Price(marketDataProvider.getAsk(symbol));
+		} else if (side == Side.SELL || side == Side.SELL_SHORT) {
+			return new Price(marketDataProvider.getBid(symbol));
+		} else {
+			throw new RuntimeException("Invalid order side: " + side);
+		}
 	}
 
 	private void validateOrder(Message order) throws IncorrectTagValue,
