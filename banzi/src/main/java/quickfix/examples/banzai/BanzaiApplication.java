@@ -45,6 +45,8 @@ import quickfix.examples.banzai.fix.FixMessageBuilderFactory;
 import quickfix.examples.banzai.model.Execution;
 import quickfix.examples.banzai.model.LogonEvent;
 import quickfix.examples.banzai.model.Order;
+import quickfix.examples.utility.DefaultMessageSender;
+import quickfix.examples.utility.MessageSender;
 import quickfix.field.AvgPx;
 import quickfix.field.BeginString;
 import quickfix.field.BusinessRejectReason;
@@ -74,6 +76,7 @@ public class BanzaiApplication extends ApplicationAdapter {
 	private ObservableLogon observableLogon = new ObservableLogon();
 	private boolean isAvailable = true;
 	private boolean isMissingField;
+	private MessageSender messageSender = new DefaultMessageSender();
 
 	static private HashMap<SessionID, HashSet<ExecID>> execIDs = new HashMap<SessionID, HashSet<ExecID>>();
 
@@ -282,13 +285,6 @@ public class BanzaiApplication extends ApplicationAdapter {
 		}
 	}
 
-	private void send(quickfix.Message message, SessionID sessionID) {
-		try {
-			Session.sendToTarget(message, sessionID);
-		} catch (SessionNotFound e) {
-			System.out.println(e);
-		}
-	}
 
 	public void send(Order order) {
 		String beginString = order.getSessionID().getBeginString();
@@ -314,6 +310,10 @@ public class BanzaiApplication extends ApplicationAdapter {
 		orderTableModel.addID(order, newOrder.getID());
 		send(message, order.getSessionID());
 		return;
+	}
+	
+	private void send(quickfix.Message message, SessionID sessionID) {
+		messageSender.sendMessage(message, sessionID);
 	}
 
 	public void addLogonObserver(Observer observer) {

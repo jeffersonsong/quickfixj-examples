@@ -10,4 +10,11 @@
 	</parent>
 	<artifactId>banzi</artifactId>
 	<name>banzi</name>
+    <dependencies>
+        <dependency>
+            <groupId>quickfixj</groupId>
+            <artifactId>utility</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>	
 </project>

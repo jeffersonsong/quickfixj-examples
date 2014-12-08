@@ -27,21 +27,19 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import quickfix.ApplicationAdapter;
 import quickfix.ConfigError;
 import quickfix.FieldConvertError;
 import quickfix.FieldNotFound;
-import quickfix.IncorrectDataFormat;
 import quickfix.IncorrectTagValue;
 import quickfix.LogUtil;
 import quickfix.Message;
-import quickfix.MessageCracker;
 import quickfix.Session;
 import quickfix.SessionID;
 import quickfix.SessionSettings;
 import quickfix.UnsupportedMessageType;
 import quickfix.examples.fix.builder.execution.ExecutionReportBuilder;
 import quickfix.examples.fix.builder.execution.ExecutionReportBuilderFactory;
+import quickfix.examples.utility.CrackedApplicationAdapter;
 import quickfix.examples.utility.DefaultMessageSender;
 import quickfix.examples.utility.IdGenerator;
 import quickfix.examples.utility.MessageSender;
@@ -53,7 +51,7 @@ import quickfix.field.Price;
 import quickfix.field.Side;
 import quickfix.field.Symbol;
 
-public class Application extends ApplicationAdapter {
+public class Application extends CrackedApplicationAdapter {
 	private static final String DEFAULT_MARKET_PRICE_KEY = "DefaultMarketPrice";
 	private static final String ALWAYS_FILL_LIMIT_KEY = "AlwaysFillLimitOrders";
 	private static final String VALID_ORDER_TYPES_KEY = "ValidOrderTypes";
@@ -66,7 +64,6 @@ public class Application extends ApplicationAdapter {
 	private ExecutionReportBuilderFactory builderFactory = new ExecutionReportBuilderFactory();
 	private MessageSender messageSender;
 	private IdGenerator idGenerator = new IdGenerator();
-	private MessageCracker messageCracker = new MessageCracker(this);
 
 	public Application(SessionSettings settings) throws ConfigError,
 			FieldConvertError {
@@ -140,12 +137,6 @@ public class Application extends ApplicationAdapter {
 	public void onCreate(SessionID sessionID) {
 		Session.lookupSession(sessionID).getLog()
 				.onEvent("Valid order types: " + validOrderTypes);
-	}
-
-	public void fromApp(quickfix.Message message, SessionID sessionID)
-			throws FieldNotFound, IncorrectDataFormat, IncorrectTagValue,
-			UnsupportedMessageType {
-		messageCracker.crack(message, sessionID);
 	}
 
 	public void onMessage(quickfix.fix40.NewOrderSingle order,

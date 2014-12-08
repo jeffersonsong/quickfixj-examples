@@ -24,16 +24,14 @@ import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import quickfix.ApplicationAdapter;
 import quickfix.FieldNotFound;
-import quickfix.IncorrectDataFormat;
 import quickfix.IncorrectTagValue;
 import quickfix.Message;
-import quickfix.MessageCracker;
 import quickfix.SessionID;
 import quickfix.UnsupportedMessageType;
 import quickfix.examples.fix.builder.execution.ExecutionReportBuilder;
 import quickfix.examples.fix.builder.execution.FIX42ExecutionReportBuilder;
+import quickfix.examples.utility.CrackedApplicationAdapter;
 import quickfix.examples.utility.DefaultMessageSender;
 import quickfix.examples.utility.IdGenerator;
 import quickfix.examples.utility.MessageSender;
@@ -49,7 +47,7 @@ import quickfix.field.Symbol;
 import quickfix.field.TimeInForce;
 import quickfix.fix42.MarketDataRequest;
 
-public class Application  extends ApplicationAdapter {
+public class Application extends CrackedApplicationAdapter {
 	private static final Logger log = LoggerFactory
 			.getLogger(Application.class);
 
@@ -57,7 +55,6 @@ public class Application  extends ApplicationAdapter {
 	private IdGenerator generator = new IdGenerator();
 	private final MessageSender messageSender;
 	private ExecutionReportBuilder fix42Builder = new FIX42ExecutionReportBuilder();
-	private MessageCracker messageCracker = new MessageCracker(this);
 
 	public Application() {
 		this(new DefaultMessageSender());
@@ -65,12 +62,6 @@ public class Application  extends ApplicationAdapter {
 
 	public Application(MessageSender messageSender) {
 		this.messageSender = messageSender;
-	}
-
-	public void fromApp(Message message, SessionID sessionId)
-			throws FieldNotFound, IncorrectDataFormat, IncorrectTagValue,
-			UnsupportedMessageType {
-		messageCracker.crack(message, sessionId);
 	}
 
 	public void onMessage(quickfix.fix42.NewOrderSingle message,

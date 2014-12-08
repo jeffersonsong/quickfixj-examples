@@ -4,59 +4,104 @@ import quickfix.FieldNotFound;
 import quickfix.Message;
 import quickfix.field.AvgPx;
 import quickfix.field.CumQty;
-import quickfix.field.ExecID;
 import quickfix.field.ExecType;
 import quickfix.field.LastPx;
 import quickfix.field.LastQty;
 import quickfix.field.LeavesQty;
 import quickfix.field.OrdStatus;
-import quickfix.field.OrderID;
 import quickfix.field.OrderQty;
-import quickfix.fix43.ExecutionReport;
-import quickfix.fix43.NewOrderSingle;
+import quickfix.field.Text;
 
 public class FIX43ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 
 	public Message orderAcked(Message message, String orderID, String execID)
-			throws FieldNotFound {
-		NewOrderSingle order = (NewOrderSingle) message;
-		ExecutionReport accept = new ExecutionReport(new OrderID(orderID),
-				new ExecID(execID), new ExecType(ExecType.NEW), new OrdStatus(
-						OrdStatus.NEW), order.getSide(), new LeavesQty(order
-						.getOrderQty().getValue()), new CumQty(0), new AvgPx(0));
+			throws FieldNotFound {	
+		Message exec = createExecutionReport(message, orderID, execID);
 
-		accept.set(order.getClOrdID());
-		accept.set(order.getSymbol());
-		accept.setField(order.getOrderQty());
-		accept.set(new LastQty(0));
-		accept.set(new LastPx(0));
+		exec.setField(new ExecType(ExecType.NEW));
+		exec.setField(new OrdStatus(OrdStatus.NEW));
+
+		exec.setField(new LastQty(0));
+		exec.setField(new LastPx(0));
 		
-		reverseRoute(message, accept);
-		return accept;
+		double orderQty = message.getDouble(OrderQty.FIELD);
+		exec.setField(new LeavesQty(orderQty));
+		exec.setField(new CumQty(0));
+		exec.setField(new AvgPx(0));
+
+		return exec;
+	}
+
+	public Message orderRejected(Message message, String orderID,
+			String execID, String text) throws FieldNotFound {	
+		Message exec = createExecutionReport(message, orderID, execID);
+		
+		exec.setField(new ExecType(ExecType.REJECTED));
+		exec.setField(new OrdStatus(OrdStatus.REJECTED));
+
+		exec.setField(new LastQty(0));
+		exec.setField(new LastPx(0));
+		
+		exec.setField(new LeavesQty(0));
+		exec.setField(new CumQty(0));
+		exec.setField(new AvgPx(0));
+		
+		exec.setField(new Text(text));
+		return exec;
 	}
 
 	public Message fillOrder(Message message, String orderID, String execID,
 			char ordStatus, double cumQty, double avgPx, double lastShares,
 			double lastPx) throws FieldNotFound {
-		NewOrderSingle order = (NewOrderSingle) message;
-		OrderQty orderQty = order.getOrderQty();
-		char execType = cumQty < orderQty.getValue() ? ExecType.PARTIAL_FILL
-				: ExecType.FILL;
-
-		ExecutionReport executionReport = new ExecutionReport(new OrderID(
-				orderID), new ExecID(execID), new ExecType(execType),
-				new OrdStatus(ordStatus), order.getSide(), new LeavesQty(
-						orderQty.getValue() - cumQty), new CumQty(cumQty),
-				new AvgPx(avgPx));
-
-		executionReport.set(order.getClOrdID());
-		executionReport.set(order.getSymbol());
-		executionReport.set(orderQty);
-		executionReport.set(new LastQty(lastShares));
-		executionReport.set(new LastPx(lastPx));
+		char execType = getFillType(message, cumQty);
 		
-		reverseRoute(message, executionReport);
-		return executionReport;
+		Message exec = createExecutionReport(message, orderID, execID);
+
+		exec.setField(new ExecType(execType));
+		exec.setField(new OrdStatus(ordStatus));
+
+		exec.setField(new LastQty(lastShares));
+		exec.setField(new LastPx(lastPx));
+		
+		double orderQty = message.getDouble(OrderQty.FIELD);
+		exec.setField(new LeavesQty(orderQty - cumQty));
+		exec.setField(new CumQty(cumQty));
+		exec.setField(new AvgPx(avgPx));
+
+		return exec;
 	}
 
+	public Message orderCanceled(Message message, String orderID,
+			String execID, double cumQty, double avgPx) throws FieldNotFound {
+		Message exec = createExecutionReport(message, orderID, execID);
+
+		exec.setField(new ExecType(ExecType.CANCELED));
+		exec.setField(new OrdStatus(OrdStatus.CANCELED));
+
+		exec.setField(new LastQty(0));
+		exec.setField(new LastPx(0));
+		
+		exec.setField(new LeavesQty(0));
+		exec.setField(new CumQty(cumQty));
+		exec.setField(new AvgPx(avgPx));
+		return exec;
+	}
+
+	@Override
+	public Message orderReplaced(Message message, String orderID,
+			String execID, double cumQty, double avgPx) throws FieldNotFound {	
+		Message exec = createExecutionReport(message, orderID, execID);
+		
+		exec.setField(new ExecType(ExecType.REPLACE));
+		exec.setField(new OrdStatus(OrdStatus.REPLACED));
+
+		exec.setField(new LastQty(0));
+		exec.setField(new LastPx(0));
+		
+		double orderQty = message.getDouble(OrderQty.FIELD);
+		exec.setField(new LeavesQty(orderQty - cumQty));
+		exec.setField(new CumQty(cumQty));
+		exec.setField(new AvgPx(avgPx));
+		return exec;
+	}
 }
