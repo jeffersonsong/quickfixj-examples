@@ -52,6 +52,8 @@ import quickfix.ScreenLogFactory;
 import quickfix.SessionID;
 import quickfix.SessionSettings;
 import quickfix.SocketAcceptor;
+import quickfix.examples.executor.scala.Application;
+import quickfix.examples.utility.DefaultMessageSender;
 import quickfix.mina.acceptor.DynamicAcceptorSessionProvider;
 import quickfix.mina.acceptor.DynamicAcceptorSessionProvider.TemplateMapping;
 
@@ -85,7 +87,7 @@ public class Executor {
 		}
 
 		Application application = new Application(alwaysFillLimitOrders,
-				validOrderTypesStr, defaultMarketPrice);
+				validOrderTypesStr, defaultMarketPrice, new DefaultMessageSender());
 		MessageStoreFactory messageStoreFactory = new FileStoreFactory(settings);
 		LogFactory logFactory = new ScreenLogFactory(true, true, true);
 		MessageFactory messageFactory = new DefaultMessageFactory();

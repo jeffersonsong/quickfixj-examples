@@ -5,11 +5,11 @@ import quickfix.Message
 import quickfix.SessionID
 import quickfix.SessionSettings
 import quickfix.examples.fix.builder.execution.ExecutionReportBuilderFactory
+import quickfix.examples.utility.scala.Logging
 import quickfix.examples.utility.CrackedApplicationAdapter
 import quickfix.examples.utility.DefaultMessageSender
 import quickfix.examples.utility.IdGenerator
 import quickfix.examples.utility.MessageSender
-import quickfix.examples.utility.scala.Logging
 import quickfix.field.BeginString
 import quickfix.field.OrdStatus
 import quickfix.field.OrdType
