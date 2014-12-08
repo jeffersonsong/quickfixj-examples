@@ -24,20 +24,19 @@ import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import quickfix.DoNotSend;
+import quickfix.ApplicationAdapter;
 import quickfix.FieldNotFound;
 import quickfix.IncorrectDataFormat;
 import quickfix.IncorrectTagValue;
 import quickfix.Message;
 import quickfix.MessageCracker;
-import quickfix.RejectLogon;
-import quickfix.Session;
 import quickfix.SessionID;
-import quickfix.SessionNotFound;
 import quickfix.UnsupportedMessageType;
 import quickfix.examples.fix.builder.execution.ExecutionReportBuilder;
 import quickfix.examples.fix.builder.execution.FIX42ExecutionReportBuilder;
+import quickfix.examples.utility.DefaultMessageSender;
 import quickfix.examples.utility.IdGenerator;
+import quickfix.examples.utility.MessageSender;
 import quickfix.field.NoRelatedSym;
 import quickfix.field.OrdStatus;
 import quickfix.field.OrdType;
@@ -50,7 +49,7 @@ import quickfix.field.Symbol;
 import quickfix.field.TimeInForce;
 import quickfix.fix42.MarketDataRequest;
 
-public class Application extends MessageCracker implements quickfix.Application {
+public class Application  extends ApplicationAdapter {
 	private static final Logger log = LoggerFactory
 			.getLogger(Application.class);
 
@@ -58,33 +57,20 @@ public class Application extends MessageCracker implements quickfix.Application 
 	private IdGenerator generator = new IdGenerator();
 	private final MessageSender messageSender;
 	private ExecutionReportBuilder fix42Builder = new FIX42ExecutionReportBuilder();
+	private MessageCracker messageCracker = new MessageCracker(this);
 
 	public Application() {
-		this(new MessageSender() {
-			public boolean sendToTarget(Message message) {
-				try {
-					return Session.sendToTarget(message);
-				} catch (SessionNotFound e) {
-					log.error("Failed to send: " + message, e);
-					return false;
-				}
-			}
-		});
+		this(new DefaultMessageSender());
 	}
 
 	public Application(MessageSender messageSender) {
 		this.messageSender = messageSender;
 	}
 
-	public void fromAdmin(Message message, SessionID sessionId)
-			throws FieldNotFound, IncorrectDataFormat, IncorrectTagValue,
-			RejectLogon {
-	}
-
 	public void fromApp(Message message, SessionID sessionId)
 			throws FieldNotFound, IncorrectDataFormat, IncorrectTagValue,
 			UnsupportedMessageType {
-		crack(message, sessionId);
+		messageCracker.crack(message, sessionId);
 	}
 
 	public void onMessage(quickfix.fix42.NewOrderSingle message,
@@ -133,7 +119,7 @@ public class Application extends MessageCracker implements quickfix.Application 
 
 	private void rejectOrder(Order order) throws FieldNotFound {
 		Message execRpt = fix42Builder.orderRejected(order.getMessage(),
-				generator.genExecID(), generator.genOrderID(), "");
+				generator.genExecID(), order.getOrderID(), "");
 		send(execRpt);
 	}
 
@@ -221,9 +207,6 @@ public class Application extends MessageCracker implements quickfix.Application 
 		}
 	}
 
-	public void onCreate(SessionID sessionId) {
-	}
-
 	public void onLogon(SessionID sessionId) {
 		log.info("Logon - " + sessionId);
 	}
@@ -232,19 +215,11 @@ public class Application extends MessageCracker implements quickfix.Application 
 		log.info("Logout - " + sessionId);
 	}
 
-	public void toAdmin(Message message, SessionID sessionId) {
-		// empty
-	}
-
-	public void toApp(Message message, SessionID sessionId) throws DoNotSend {
-		// empty
-	}
-
 	public OrderMatcher orderMatcher() {
 		return orderMatcher;
 	}
 
 	private void send(Message message) {
-		messageSender.sendToTarget(message);
+		messageSender.sendMessage(message, null);
 	}
 }

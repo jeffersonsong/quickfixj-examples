@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 import quickfix.InvalidMessage;
 import quickfix.Message;
 import quickfix.examples.executor.Application;
-import quickfix.examples.executor.MockMessageSender;
+import quickfix.examples.utility.MockMessageSender;
 import cucumber.api.DataTable;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;

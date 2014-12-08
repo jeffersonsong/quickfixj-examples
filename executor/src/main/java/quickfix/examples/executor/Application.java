@@ -27,22 +27,24 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import quickfix.ApplicationAdapter;
 import quickfix.ConfigError;
-import quickfix.DoNotSend;
 import quickfix.FieldConvertError;
 import quickfix.FieldNotFound;
 import quickfix.IncorrectDataFormat;
 import quickfix.IncorrectTagValue;
 import quickfix.LogUtil;
 import quickfix.Message;
-import quickfix.RejectLogon;
+import quickfix.MessageCracker;
 import quickfix.Session;
 import quickfix.SessionID;
 import quickfix.SessionSettings;
 import quickfix.UnsupportedMessageType;
 import quickfix.examples.fix.builder.execution.ExecutionReportBuilder;
 import quickfix.examples.fix.builder.execution.ExecutionReportBuilderFactory;
+import quickfix.examples.utility.DefaultMessageSender;
 import quickfix.examples.utility.IdGenerator;
+import quickfix.examples.utility.MessageSender;
 import quickfix.field.BeginString;
 import quickfix.field.OrdStatus;
 import quickfix.field.OrdType;
@@ -51,8 +53,7 @@ import quickfix.field.Price;
 import quickfix.field.Side;
 import quickfix.field.Symbol;
 
-public class Application extends quickfix.MessageCracker implements
-		quickfix.Application {
+public class Application extends ApplicationAdapter {
 	private static final String DEFAULT_MARKET_PRICE_KEY = "DefaultMarketPrice";
 	private static final String ALWAYS_FILL_LIMIT_KEY = "AlwaysFillLimitOrders";
 	private static final String VALID_ORDER_TYPES_KEY = "ValidOrderTypes";
@@ -65,6 +66,7 @@ public class Application extends quickfix.MessageCracker implements
 	private ExecutionReportBuilderFactory builderFactory = new ExecutionReportBuilderFactory();
 	private MessageSender messageSender;
 	private IdGenerator idGenerator = new IdGenerator();
+	private MessageCracker messageCracker = new MessageCracker(this);
 
 	public Application(SessionSettings settings) throws ConfigError,
 			FieldConvertError {
@@ -75,7 +77,8 @@ public class Application extends quickfix.MessageCracker implements
 			throws ConfigError, FieldConvertError {
 		String validOrderTypesStr = null;
 		if (settings.isSetting(VALID_ORDER_TYPES_KEY)) {
-			validOrderTypesStr = settings.getString(VALID_ORDER_TYPES_KEY).trim();
+			validOrderTypesStr = settings.getString(VALID_ORDER_TYPES_KEY)
+					.trim();
 		}
 
 		double defaultMarketPrice = 0.0;
@@ -84,7 +87,8 @@ public class Application extends quickfix.MessageCracker implements
 		}
 
 		if (settings.isSetting(ALWAYS_FILL_LIMIT_KEY)) {
-			this.alwaysFillLimitOrders = settings.getBool(ALWAYS_FILL_LIMIT_KEY);
+			this.alwaysFillLimitOrders = settings
+					.getBool(ALWAYS_FILL_LIMIT_KEY);
 		} else {
 			this.alwaysFillLimitOrders = false;
 		}
@@ -138,28 +142,10 @@ public class Application extends quickfix.MessageCracker implements
 				.onEvent("Valid order types: " + validOrderTypes);
 	}
 
-	public void onLogon(SessionID sessionID) {
-	}
-
-	public void onLogout(SessionID sessionID) {
-	}
-
-	public void toAdmin(quickfix.Message message, SessionID sessionID) {
-	}
-
-	public void toApp(quickfix.Message message, SessionID sessionID)
-			throws DoNotSend {
-	}
-
-	public void fromAdmin(quickfix.Message message, SessionID sessionID)
-			throws FieldNotFound, IncorrectDataFormat, IncorrectTagValue,
-			RejectLogon {
-	}
-
 	public void fromApp(quickfix.Message message, SessionID sessionID)
 			throws FieldNotFound, IncorrectDataFormat, IncorrectTagValue,
 			UnsupportedMessageType {
-		crack(message, sessionID);
+		messageCracker.crack(message, sessionID);
 	}
 
 	public void onMessage(quickfix.fix40.NewOrderSingle order,
@@ -210,18 +196,19 @@ public class Application extends quickfix.MessageCracker implements
 			OrderQty orderQty = new OrderQty();
 			order.getField(orderQty);
 			Price price = getPrice(order);
-			String orderID = genOrderID();
+			String orderID = idGenerator.genOrderID();
 
-			Message accept = builder.orderAcked(order, orderID, genExecID());
-			this.messageSender.sendMessage(sessionID, accept);
+			Message accept = builder.orderAcked(order, orderID,
+					idGenerator.genExecID());
+			this.messageSender.sendMessage(accept, sessionID);
 
 			if (isOrderExecutable(order, price)) {
-				Message fill = builder
-						.fillOrder(order, orderID, genExecID(), OrdStatus.FILLED,
-								orderQty.getValue(), price.getValue(),
-								orderQty.getValue(), price.getValue());
+				Message fill = builder.fillOrder(order, orderID,
+						idGenerator.genExecID(), OrdStatus.FILLED,
+						orderQty.getValue(), price.getValue(),
+						orderQty.getValue(), price.getValue());
 
-				this.messageSender.sendMessage(sessionID, fill);
+				this.messageSender.sendMessage(fill, sessionID);
 			}
 		} catch (RuntimeException e) {
 			LogUtil.logThrowable(sessionID, e.getMessage(), e);
@@ -277,14 +264,6 @@ public class Application extends quickfix.MessageCracker implements
 			log.error("DefaultMarketPrice setting not specified for market order");
 			throw new IncorrectTagValue(ordType.getField());
 		}
-	}
-
-	public String genOrderID() {
-		return idGenerator.genOrderID();
-	}
-
-	public String genExecID() {
-		return idGenerator.genExecID();
 	}
 
 	/**

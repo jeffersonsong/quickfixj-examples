@@ -11,6 +11,7 @@ import org.mockito.Mock;
 
 import quickfix.Message;
 import quickfix.SessionID;
+import quickfix.examples.utility.MockMessageSender;
 import quickfix.fix42.NewOrderSingle;
 
 public class OrderMatchTest {

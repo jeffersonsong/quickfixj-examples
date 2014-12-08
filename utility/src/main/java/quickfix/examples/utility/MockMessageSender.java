@@ -1,4 +1,4 @@
-package quickfix.examples.executor;
+package quickfix.examples.utility;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +15,7 @@ public class MockMessageSender implements MessageSender {
 		return result;
 	}
 
-	public void sendMessage(SessionID sessionID, Message message) {
+	public void sendMessage(Message message, SessionID sessionID) {
 		this.messages.add(message);
 	}
 }
