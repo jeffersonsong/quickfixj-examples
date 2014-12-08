@@ -28,6 +28,8 @@ public class FIX50ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 		accept.set(order.getClOrdID());
 		accept.set(order.getSymbol());
 		accept.set(new AvgPx(0));
+		accept.set(new LastQty(0));
+		accept.set(new LastPx(0));
 		
 		accept.setField(order.getOrderQty());
 		

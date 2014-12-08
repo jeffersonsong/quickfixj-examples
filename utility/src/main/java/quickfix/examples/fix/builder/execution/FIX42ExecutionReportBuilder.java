@@ -30,8 +30,11 @@ public class FIX42ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 				new ExecType(ExecType.NEW), new OrdStatus(OrdStatus.NEW),
 				order.getSymbol(), order.getSide(), new LeavesQty(order
 						.getOrderQty().getValue()), new CumQty(0), new AvgPx(0));
+		
 		accept.setField(order.getOrderQty());
 		accept.set(order.getClOrdID());
+		accept.set(new LastShares(0));
+		accept.set(new LastPx(0));
 
 		reverseRoute(message, accept);
 		return accept;
