@@ -19,23 +19,54 @@
 
 package quickfix.examples.banzai;
 
-import static quickfix.examples.banzai.model.TypeMapping.*;
+import static quickfix.examples.banzai.model.TypeMapping.FIXSideToSide;
+import static quickfix.examples.banzai.model.TypeMapping.FIXTypeToType;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
 
 import javax.swing.SwingUtilities;
 
-import quickfix.*;
-import quickfix.examples.banzai.fix.*;
-import quickfix.examples.banzai.model.*;
-import quickfix.field.*;
+import quickfix.ApplicationAdapter;
+import quickfix.DefaultMessageFactory;
+import quickfix.FieldNotFound;
+import quickfix.IncorrectDataFormat;
+import quickfix.IncorrectTagValue;
+import quickfix.Message;
+import quickfix.Session;
+import quickfix.SessionID;
+import quickfix.SessionNotFound;
+import quickfix.UnsupportedMessageType;
+import quickfix.examples.banzai.fix.FixMessageBuilder;
+import quickfix.examples.banzai.fix.FixMessageBuilderFactory;
+import quickfix.examples.banzai.model.Execution;
+import quickfix.examples.banzai.model.LogonEvent;
+import quickfix.examples.banzai.model.Order;
+import quickfix.field.AvgPx;
+import quickfix.field.BeginString;
+import quickfix.field.BusinessRejectReason;
+import quickfix.field.ClOrdID;
+import quickfix.field.CumQty;
+import quickfix.field.DeliverToCompID;
+import quickfix.field.ExecID;
+import quickfix.field.LastPx;
+import quickfix.field.LastShares;
+import quickfix.field.LeavesQty;
+import quickfix.field.MsgType;
+import quickfix.field.OrdStatus;
+import quickfix.field.OrdType;
+import quickfix.field.OrderQty;
+import quickfix.field.OrigClOrdID;
+import quickfix.field.Price;
+import quickfix.field.SessionRejectReason;
+import quickfix.field.Side;
+import quickfix.field.Symbol;
+import quickfix.field.Text;
 
-public class BanzaiApplication implements Application {
+public class BanzaiApplication extends ApplicationAdapter {
 
 	private OrderTableModel orderTableModel = null;
 	private ExecutionTableModel executionTableModel = null;
@@ -46,15 +77,12 @@ public class BanzaiApplication implements Application {
 
 	static private HashMap<SessionID, HashSet<ExecID>> execIDs = new HashMap<SessionID, HashSet<ExecID>>();
 
-	static private Map<String, FixMessageBuilder> fixMessageBuilders = new HashMap<String, FixMessageBuilder>();
+	static private FixMessageBuilderFactory fixMessageBuilderFactory = new FixMessageBuilderFactory(new DefaultMessageFactory());
 
 	public BanzaiApplication(OrderTableModel orderTableModel,
 			ExecutionTableModel executionTableModel) {
 		this.orderTableModel = orderTableModel;
 		this.executionTableModel = executionTableModel;
-	}
-
-	public void onCreate(SessionID sessionID) {
 	}
 
 	public void onLogon(SessionID sessionID) {
@@ -63,18 +91,6 @@ public class BanzaiApplication implements Application {
 
 	public void onLogout(SessionID sessionID) {
 		observableLogon.logoff(sessionID);
-	}
-
-	public void toAdmin(quickfix.Message message, SessionID sessionID) {
-	}
-
-	public void toApp(quickfix.Message message, SessionID sessionID)
-			throws DoNotSend {
-	}
-
-	public void fromAdmin(quickfix.Message message, SessionID sessionID)
-			throws FieldNotFound, IncorrectDataFormat, IncorrectTagValue,
-			RejectLogon {
 	}
 
 	public void fromApp(quickfix.Message message, SessionID sessionID)
@@ -207,7 +223,6 @@ public class BanzaiApplication implements Application {
 			if (message.isSetField(Price.FIELD)) {
 				order.setLimit(message.getDouble(Price.FIELD));
 			}
-			
 		}
 
 		try {
@@ -237,7 +252,6 @@ public class BanzaiApplication implements Application {
 
 	private void cancelReject(Message message, SessionID sessionID)
 			throws FieldNotFound {
-
 		String id = message.getField(new ClOrdID()).getValue();
 		Order order = orderTableModel.getOrder(id);
 		if (order == null)
@@ -361,22 +375,6 @@ public class BanzaiApplication implements Application {
 	}
 
 	private FixMessageBuilder getFixMessageBuilder(String beginString) {
-		return fixMessageBuilders.get(beginString);
-	}
-
-	static {
-		DefaultMessageFactory messageFactory = new DefaultMessageFactory();
-		fixMessageBuilders.put(FixVersions.BEGINSTRING_FIX40,
-				new Fix40MessageBuilder(messageFactory));
-		fixMessageBuilders.put(FixVersions.BEGINSTRING_FIX41,
-				new Fix41MessageBuilder(messageFactory));
-		fixMessageBuilders.put(FixVersions.BEGINSTRING_FIX42,
-				new Fix42MessageBuilder(messageFactory));
-		fixMessageBuilders.put(FixVersions.BEGINSTRING_FIX43,
-				new Fix43MessageBuilder(messageFactory));
-		fixMessageBuilders.put(FixVersions.BEGINSTRING_FIX44,
-				new Fix44MessageBuilder(messageFactory));
-		fixMessageBuilders.put(FixVersions.BEGINSTRING_FIXT11,
-				new Fix50MessageBuilder(messageFactory));
+		return fixMessageBuilderFactory.getFixMessageBuilder(beginString);
 	}
 }

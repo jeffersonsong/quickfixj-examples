@@ -265,7 +265,6 @@ public class OrderEntryPanel extends JPanel implements Observer {
 
             orderTableModel.addOrder(order);
             application.send(order);
-
         }
     }
 

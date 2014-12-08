@@ -20,11 +20,11 @@ public class FIX40ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 			throws FieldNotFound {
 		NewOrderSingle order = (NewOrderSingle) message;
 		OrderQty orderQty = order.getOrderQty();
-		ExecutionReport accept = new ExecutionReport(new OrderID(orderID),
-				new ExecID(execID), new ExecTransType(ExecTransType.NEW),
-				new OrdStatus(OrdStatus.NEW), order.getSymbol(),
-				order.getSide(), orderQty, new LastShares(orderQty.getValue()),
-				new LastPx(0), new CumQty(0), new AvgPx(0));
+		ExecutionReport accept = new quickfix.fix40.ExecutionReport(
+				new OrderID(orderID), new ExecID(execID), new ExecTransType(
+						ExecTransType.NEW), new OrdStatus(OrdStatus.NEW),
+				order.getSymbol(), order.getSide(), orderQty,
+				new LastShares(0), new LastPx(0), new CumQty(0), new AvgPx(0));
 
 		accept.set(order.getClOrdID());
 		reverseRoute(message, accept);
