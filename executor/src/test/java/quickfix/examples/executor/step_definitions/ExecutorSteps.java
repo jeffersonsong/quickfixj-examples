@@ -14,8 +14,8 @@ import quickfix.Message;
 import quickfix.examples.executor.Application;
 import quickfix.examples.utility.MockMessageSender;
 import cucumber.api.DataTable;
-import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
+import cucumber.api.java.en.When;
 
 public class ExecutorSteps {
 	private static final Logger log = LoggerFactory
@@ -24,12 +24,11 @@ public class ExecutorSteps {
 	private Application application;
 
 	public ExecutorSteps() throws Exception {
-		super();
 		this.messageSender = new MockMessageSender();
 		this.application = new Application(false, "1,2,F", 12.30, messageSender);
 	}
 
-	@Given("^the following messages are sent to the executor:$")
+	@When("^the following messages are sent to the executor:$")
 	public void the_following_messages_are_sent_to_the_match_engine(
 			DataTable messageTable) throws Exception {
 		List<Message> messages = convertToMessages(messageTable);

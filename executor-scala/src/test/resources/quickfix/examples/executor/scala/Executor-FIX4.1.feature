@@ -1,4 +1,4 @@
-Feature: Functionalities of the executor in in FIX4.1
+Feature: Functionalities of the executor in in FIX.4.1
 
   Scenario: Buy limit order with fill in FIX4.1 protocol
      When the following messages are sent to the executor:

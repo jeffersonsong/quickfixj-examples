@@ -1,4 +1,4 @@
-Feature: Functionalities of the executor in FIXT1.1
+Feature: Functionalities of the executor in FIXT.1.1
 
   Scenario: Buy limit order with fill in FIXT1.1 protocol
      When the following messages are sent to the executor:
