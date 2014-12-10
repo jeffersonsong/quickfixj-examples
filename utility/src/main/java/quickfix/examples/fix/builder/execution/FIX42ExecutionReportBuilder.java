@@ -14,6 +14,25 @@ import quickfix.field.OrderQty;
 import quickfix.field.Text;
 
 public class FIX42ExecutionReportBuilder extends AbstractExecutioReportBuilder {
+	@Override
+	public Message pendingAck(Message message, String orderID,
+			String execID) throws FieldNotFound {
+		Message exec = createExecutionReport(message, orderID, execID);
+
+		exec.setField(new ExecTransType(ExecTransType.NEW));
+		exec.setField(new ExecType(ExecType.PENDING_NEW));
+		exec.setField(new OrdStatus(OrdStatus.PENDING_NEW));
+
+		exec.setField(new LastShares(0));
+		exec.setField(new LastPx(0));
+		
+		double orderQty = message.getDouble(OrderQty.FIELD);
+		exec.setField(new LeavesQty(orderQty));
+		exec.setField(new CumQty(0));
+		exec.setField(new AvgPx(0));
+
+		return exec;
+	}
 
 	public Message orderAcked(Message message, String orderID, String execID)
 			throws FieldNotFound {	
@@ -75,6 +94,24 @@ public class FIX42ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 		return exec;
 	}
 
+	@Override
+	public Message pendingCancel(Message message, String orderID,
+			String execID, double cumQty, double avgPx) throws FieldNotFound {
+		Message exec = createExecutionReport(message, orderID, execID);
+		
+		exec.setField(new ExecTransType(ExecTransType.NEW));
+		exec.setField(new ExecType(ExecType.PENDING_CANCEL));
+		exec.setField(new OrdStatus(OrdStatus.PENDING_CANCEL));
+
+		exec.setField(new LastShares(0));
+		exec.setField(new LastPx(0));
+		
+		exec.setField(new LeavesQty(0));
+		exec.setField(new CumQty(cumQty));
+		exec.setField(new AvgPx(avgPx));
+		return exec;
+	}
+
 	public Message orderCanceled(Message message, String orderID,
 			String execID, double cumQty, double avgPx) throws FieldNotFound {
 		Message exec = createExecutionReport(message, orderID, execID);
@@ -87,6 +124,24 @@ public class FIX42ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 		exec.setField(new LastPx(0));
 		
 		exec.setField(new LeavesQty(0));
+		exec.setField(new CumQty(cumQty));
+		exec.setField(new AvgPx(avgPx));
+		return exec;
+	}
+
+	@Override
+	public Message pendingReplace(Message message, String orderID,
+			String execID, double orderQty, double cumQty, double avgPx) throws FieldNotFound {
+		Message exec = createExecutionReport(message, orderID, execID);
+		
+		exec.setField(new ExecTransType(ExecTransType.NEW));
+		exec.setField(new ExecType(ExecType.PENDING_REPLACE));
+		exec.setField(new OrdStatus(OrdStatus.PENDING_REPLACE));
+
+		exec.setField(new LastShares(0));
+		exec.setField(new LastPx(0));
+		
+		exec.setField(new LeavesQty(orderQty - cumQty));
 		exec.setField(new CumQty(cumQty));
 		exec.setField(new AvgPx(avgPx));
 		return exec;
