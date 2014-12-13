@@ -18,7 +18,7 @@ public interface ExecutionReportBuilder {
 			double lastPx) throws FieldNotFound;
 
 	Message pendingCancel(Message cancelRequest, String orderID, String execID,
-			double cumQty, double avgPx) throws FieldNotFound;
+			double orderQty, double cumQty, double avgPx) throws FieldNotFound;
 
 	Message orderCanceled(Message cancelRequest, String orderID, String execID,
 			double cumQty, double avgPx) throws FieldNotFound;
@@ -32,6 +32,6 @@ public interface ExecutionReportBuilder {
 
 	Message cancelRejected(Message order, String orderID, char ordStatus,
 			double cumQty, double avgPx, int cxlRejReason) throws FieldNotFound;
-	
+
 	Message cancelRejectedForUnknownOrder(Message order) throws FieldNotFound;
 }

@@ -99,7 +99,7 @@ public abstract class AbstractExecutioReportBuilder implements
 	}
 
 	public Message pendingCancel(Message cancelRequest, String orderID,
-			String execID, double cumQty, double avgPx) throws FieldNotFound {
+			String execID, double orderQty, double cumQty, double avgPx) throws FieldNotFound {
 		throw new UnsupportedOperationException();
 	}
 

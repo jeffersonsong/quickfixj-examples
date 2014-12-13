@@ -96,7 +96,7 @@ public class FIX42ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 
 	@Override
 	public Message pendingCancel(Message message, String orderID,
-			String execID, double cumQty, double avgPx) throws FieldNotFound {
+			String execID, double orderQty, double cumQty, double avgPx) throws FieldNotFound {
 		Message exec = createExecutionReport(message, orderID, execID);
 		
 		exec.setField(new ExecTransType(ExecTransType.NEW));
@@ -106,7 +106,8 @@ public class FIX42ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 		exec.setField(new LastShares(0));
 		exec.setField(new LastPx(0));
 		
-		exec.setField(new LeavesQty(0));
+		exec.setField(new OrderQty(orderQty));
+		exec.setField(new LeavesQty(orderQty - cumQty));
 		exec.setField(new CumQty(cumQty));
 		exec.setField(new AvgPx(avgPx));
 		return exec;
@@ -141,6 +142,7 @@ public class FIX42ExecutionReportBuilder extends AbstractExecutioReportBuilder {
 		exec.setField(new LastShares(0));
 		exec.setField(new LastPx(0));
 		
+		exec.setField(new OrderQty(orderQty));
 		exec.setField(new LeavesQty(orderQty - cumQty));
 		exec.setField(new CumQty(cumQty));
 		exec.setField(new AvgPx(avgPx));
