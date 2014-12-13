@@ -32,4 +32,6 @@ public interface ExecutionReportBuilder {
 
 	Message cancelRejected(Message order, String orderID, char ordStatus,
 			double cumQty, double avgPx, int cxlRejReason) throws FieldNotFound;
+	
+	Message cancelRejectedForUnknownOrder(Message order) throws FieldNotFound;
 }

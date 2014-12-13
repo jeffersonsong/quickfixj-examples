@@ -194,13 +194,37 @@ public abstract class AbstractExecutioReportBuilder implements
 		}
 		exec.setField(new OrdStatus(ordStatus));
 
-		String msgType = exec.getString(MsgType.FIELD);
+		String msgType = exec.getHeader().getString(MsgType.FIELD);
 		char cxlRejResponseTo = '1';
 		if ("G".equals(msgType) || "AC".equals(msgType)) {
 			cxlRejResponseTo = '2';
 		}
 		exec.setField(new CxlRejResponseTo(cxlRejResponseTo));
 		exec.setField(new CxlRejReason(cxlRejReason));
+
+		return exec;
+	}
+	
+	public Message cancelRejectedForUnknownOrder(Message order) throws FieldNotFound {
+		Message exec = createMessage(order, MsgType.ORDER_CANCEL_REJECT);
+		reverseRoute(order, exec);
+
+		if (order.isSetField(OrderID.FIELD)) {
+			exec.setField(order.getField(new OrderID()));
+		}
+		exec.setField(order.getField(new ClOrdID()));
+		if (order.isSetField(OrigClOrdID.FIELD)) {
+			exec.setField(order.getField(new OrigClOrdID()));
+		}
+		exec.setField(new OrdStatus(OrdStatus.REJECTED));
+
+		String msgType = exec.getHeader().getString(MsgType.FIELD);
+		char cxlRejResponseTo = '1';
+		if ("G".equals(msgType) || "AC".equals(msgType)) {
+			cxlRejResponseTo = '2';
+		}
+		exec.setField(new CxlRejResponseTo(cxlRejResponseTo));
+		exec.setField(new CxlRejReason(1));
 
 		return exec;
 	}
