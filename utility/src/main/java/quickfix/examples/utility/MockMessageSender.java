@@ -15,6 +15,10 @@ public class MockMessageSender implements MessageSender {
 		return result;
 	}
 
+	public void sendMessage(Message message) {
+		sendMessage(message, null);
+	}
+
 	public void sendMessage(Message message, SessionID sessionID) {
 		this.messages.add(message);
 	}
