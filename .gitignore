@@ -1,6 +1,6 @@
 .idea/
 target/
-quickfixj-examples.iml
+*.iml
 .classpath
 .project
 .settings/
